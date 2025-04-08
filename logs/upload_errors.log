@@ -1,0 +1,271 @@
+[28-Mar-2025 01:36:44 Europe/Berlin] Upload process started
+[28-Mar-2025 01:36:44 Europe/Berlin] Files received: Array
+(
+    [file_kk] => Array
+        (
+            [name] => 
+            [full_path] => 
+            [type] => 
+            [tmp_name] => 
+            [error] => 4
+            [size] => 0
+        )
+
+    [file_akte] => Array
+        (
+            [name] => 05-Model_Data_Relasional-up.pdf
+            [full_path] => 05-Model_Data_Relasional-up.pdf
+            [type] => application/pdf
+            [tmp_name] => C:\xampp\tmp\php2E0D.tmp
+            [error] => 0
+            [size] => 4355436
+        )
+
+    [file_photo] => Array
+        (
+            [name] => 
+            [full_path] => 
+            [type] => 
+            [tmp_name] => 
+            [error] => 4
+            [size] => 0
+        )
+
+)
+
+[28-Mar-2025 01:36:44 Europe/Berlin] Processing file: file_akte
+[28-Mar-2025 01:36:44 Europe/Berlin] File details: Array
+(
+    [name] => 05-Model_Data_Relasional-up.pdf
+    [full_path] => 05-Model_Data_Relasional-up.pdf
+    [type] => application/pdf
+    [tmp_name] => C:\xampp\tmp\php2E0D.tmp
+    [error] => 0
+    [size] => 4355436
+)
+
+[28-Mar-2025 01:36:44 Europe/Berlin] File type - Detected: application/pdf, Declared: application/pdf
+[28-Mar-2025 01:36:44 Europe/Berlin] File extension: pdf
+[28-Mar-2025 01:36:44 Europe/Berlin] Attempting to move file to: C:\xampp\htdocs\PPDB\process/../uploads/Akte_Hanif_Ubaidur_Rohman_Syah.pdf
+[28-Mar-2025 01:36:44 Europe/Berlin] File successfully moved to: C:\xampp\htdocs\PPDB\process/../uploads/Akte_Hanif_Ubaidur_Rohman_Syah.pdf
+[28-Mar-2025 01:36:44 Europe/Berlin] Executing SQL: UPDATE peserta SET file_akte = ? WHERE id = ? with params: Array
+(
+    [0] => Akte_Hanif_Ubaidur_Rohman_Syah.pdf
+    [1] => 1
+)
+
+[28-Mar-2025 01:57:22 Europe/Berlin] Upload process started
+[28-Mar-2025 01:57:22 Europe/Berlin] Files received: Array
+(
+    [file_kk] => Array
+        (
+            [name] => 
+            [full_path] => 
+            [type] => 
+            [tmp_name] => 
+            [error] => 4
+            [size] => 0
+        )
+
+    [file_akte] => Array
+        (
+            [name] => file_akte_1_1743123119.pdf
+            [full_path] => file_akte_1_1743123119.pdf
+            [type] => application/pdf
+            [tmp_name] => C:\xampp\tmp\php129E.tmp
+            [error] => 0
+            [size] => 204228
+        )
+
+    [file_photo] => Array
+        (
+            [name] => 
+            [full_path] => 
+            [type] => 
+            [tmp_name] => 
+            [error] => 4
+            [size] => 0
+        )
+
+)
+
+[28-Mar-2025 01:57:22 Europe/Berlin] Processing file: file_akte
+[28-Mar-2025 01:57:22 Europe/Berlin] File details: Array
+(
+    [name] => file_akte_1_1743123119.pdf
+    [full_path] => file_akte_1_1743123119.pdf
+    [type] => application/pdf
+    [tmp_name] => C:\xampp\tmp\php129E.tmp
+    [error] => 0
+    [size] => 204228
+)
+
+[28-Mar-2025 01:57:22 Europe/Berlin] File type - Detected: application/pdf
+[28-Mar-2025 01:57:22 Europe/Berlin] Attempting to move file to: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 01:57:22 Europe/Berlin] File successfully moved to: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 01:57:22 Europe/Berlin] Executing SQL: UPDATE peserta SET file_akte = ? WHERE id = ? with params: Array
+(
+    [0] => AKTE_HanifUbaidurRohmanSyah.pdf
+    [1] => 1
+)
+
+[28-Mar-2025 02:00:28 Europe/Berlin] Upload process started
+[28-Mar-2025 02:00:28 Europe/Berlin] Files received: Array
+(
+    [file_kk] => Array
+        (
+            [name] => 
+            [full_path] => 
+            [type] => 
+            [tmp_name] => 
+            [error] => 4
+            [size] => 0
+        )
+
+    [file_akte] => Array
+        (
+            [name] => file_akte_1_1743123119.pdf
+            [full_path] => file_akte_1_1743123119.pdf
+            [type] => application/pdf
+            [tmp_name] => C:\xampp\tmp\phpEB61.tmp
+            [error] => 0
+            [size] => 204228
+        )
+
+    [file_photo] => Array
+        (
+            [name] => 
+            [full_path] => 
+            [type] => 
+            [tmp_name] => 
+            [error] => 4
+            [size] => 0
+        )
+
+)
+
+[28-Mar-2025 02:00:28 Europe/Berlin] Processing file: file_akte
+[28-Mar-2025 02:00:28 Europe/Berlin] Moving file to: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:00:28 Europe/Berlin] Executing SQL: UPDATE peserta SET file_akte = ? WHERE id = ? with params: Array
+(
+    [0] => AKTE_HanifUbaidurRohmanSyah.pdf
+    [1] => 1
+)
+
+[28-Mar-2025 02:02:49 Europe/Berlin] Upload process started
+[28-Mar-2025 02:02:49 Europe/Berlin] Processing file: file_akte
+[28-Mar-2025 02:02:49 Europe/Berlin] Deleting old file: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:02:49 Europe/Berlin] Moving new file to: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:02:49 Europe/Berlin] Executing SQL: UPDATE peserta SET file_akte = ? WHERE id = ? with params: Array
+(
+    [0] => AKTE_HanifUbaidurRohmanSyah.pdf
+    [1] => 1
+)
+
+[28-Mar-2025 02:05:24 Europe/Berlin] Upload process started
+[28-Mar-2025 02:05:24 Europe/Berlin] Deleting old file: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:05:24 Europe/Berlin] Moving new file to: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:05:24 Europe/Berlin] Executing SQL: UPDATE peserta SET file_akte = ? WHERE id = ? with params: Array
+(
+    [0] => AKTE_HanifUbaidurRohmanSyah.pdf
+    [1] => 1
+)
+
+[28-Mar-2025 02:07:22 Europe/Berlin] Upload process started
+[28-Mar-2025 02:07:22 Europe/Berlin] Processing file: file_akte
+[28-Mar-2025 02:07:22 Europe/Berlin] Original name: 05-Model_Data_Relasional-up.pdf
+[28-Mar-2025 02:07:22 Europe/Berlin] Temp path: C:\xampp\tmp\php3B7B.tmp
+[28-Mar-2025 02:07:22 Europe/Berlin] File size: 4355436
+[28-Mar-2025 02:07:22 Europe/Berlin] Detected MIME type: application/pdf
+[28-Mar-2025 02:07:22 Europe/Berlin] Deleting old file: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:07:22 Europe/Berlin] Attempting to move file to: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:07:22 Europe/Berlin] File permissions after: 0666
+[28-Mar-2025 02:07:22 Europe/Berlin] Executing SQL: UPDATE peserta SET file_akte = ? WHERE id = ? with params: Array
+(
+    [0] => AKTE_HanifUbaidurRohmanSyah.pdf
+    [1] => 1
+)
+
+[28-Mar-2025 02:10:15 Europe/Berlin] Upload process started
+[28-Mar-2025 02:10:15 Europe/Berlin] Processing file: file_akte
+[28-Mar-2025 02:10:15 Europe/Berlin] Original name: 05-Model_Data_Relasional-up.pdf
+[28-Mar-2025 02:10:15 Europe/Berlin] Temp path: C:\xampp\tmp\phpDE2B.tmp
+[28-Mar-2025 02:10:15 Europe/Berlin] File size: 4355436
+[28-Mar-2025 02:10:15 Europe/Berlin] Detected MIME type: application/pdf
+[28-Mar-2025 02:10:15 Europe/Berlin] Deleting old file: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:10:15 Europe/Berlin] Attempting to move file to: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:10:15 Europe/Berlin] Executing SQL: UPDATE peserta SET file_akte = ? WHERE id = ? with params: Array
+(
+    [0] => AKTE_HanifUbaidurRohmanSyah.pdf
+    [1] => 1
+)
+
+[28-Mar-2025 02:10:58 Europe/Berlin] Upload process started
+[28-Mar-2025 02:10:58 Europe/Berlin] Processing file: file_akte
+[28-Mar-2025 02:10:58 Europe/Berlin] Original name: 05-Model_Data_Relasional-up.pdf
+[28-Mar-2025 02:10:58 Europe/Berlin] Temp path: C:\xampp\tmp\php851B.tmp
+[28-Mar-2025 02:10:58 Europe/Berlin] File size: 4355436
+[28-Mar-2025 02:10:58 Europe/Berlin] Detected MIME type: application/pdf
+[28-Mar-2025 02:10:58 Europe/Berlin] Attempting to move file to: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:10:58 Europe/Berlin] Executing SQL: UPDATE peserta SET file_akte = ? WHERE id = ? with params: Array
+(
+    [0] => AKTE_HanifUbaidurRohmanSyah.pdf
+    [1] => 1
+)
+
+[28-Mar-2025 02:21:34 Europe/Berlin] Upload process started
+[28-Mar-2025 02:21:34 Europe/Berlin] Processing file: file_akte
+[28-Mar-2025 02:21:34 Europe/Berlin] Original name: 05-Model_Data_Relasional-up.pdf
+[28-Mar-2025 02:21:34 Europe/Berlin] Temp path: C:\xampp\tmp\php3D35.tmp
+[28-Mar-2025 02:21:34 Europe/Berlin] File size: 4355436
+[28-Mar-2025 02:21:34 Europe/Berlin] Detected MIME type: application/pdf
+[28-Mar-2025 02:21:34 Europe/Berlin] Deleting old file: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:21:34 Europe/Berlin] Attempting to move file to: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:21:35 Europe/Berlin] Executing SQL: UPDATE peserta SET file_akte = ? WHERE id = ? with params: Array
+(
+    [0] => AKTE_HanifUbaidurRohmanSyah.pdf
+    [1] => 1
+)
+
+[28-Mar-2025 02:24:42 Europe/Berlin] Upload process started
+[28-Mar-2025 02:24:42 Europe/Berlin] Processing file: file_akte
+[28-Mar-2025 02:24:42 Europe/Berlin] Original name: 05-Model_Data_Relasional-up.pdf
+[28-Mar-2025 02:24:42 Europe/Berlin] Temp path: C:\xampp\tmp\php19F1.tmp
+[28-Mar-2025 02:24:42 Europe/Berlin] File size: 4355436
+[28-Mar-2025 02:24:42 Europe/Berlin] Detected MIME type: application/pdf
+[28-Mar-2025 02:24:42 Europe/Berlin] Deleting old file: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:24:42 Europe/Berlin] Attempting to move file to: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:24:42 Europe/Berlin] Executing SQL: UPDATE peserta SET file_akte = ? WHERE id = ? with params: Array
+(
+    [0] => AKTE_HanifUbaidurRohmanSyah.pdf
+    [1] => 1
+)
+
+[28-Mar-2025 02:27:25 Europe/Berlin] Upload process started
+[28-Mar-2025 02:27:25 Europe/Berlin] Processing file: file_akte
+[28-Mar-2025 02:27:25 Europe/Berlin] Original name: 05-Model_Data_Relasional-up.pdf
+[28-Mar-2025 02:27:25 Europe/Berlin] Temp path: C:\xampp\tmp\php9784.tmp
+[28-Mar-2025 02:27:25 Europe/Berlin] File size: 4355436
+[28-Mar-2025 02:27:25 Europe/Berlin] Detected MIME type: application/pdf
+[28-Mar-2025 02:27:25 Europe/Berlin] Deleting old file: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:27:25 Europe/Berlin] Attempting to move file to: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:27:25 Europe/Berlin] Executing SQL: UPDATE peserta SET file_akte = ? WHERE id = ? with params: Array
+(
+    [0] => AKTE_HanifUbaidurRohmanSyah.pdf
+    [1] => 1
+)
+
+[28-Mar-2025 02:27:30 Europe/Berlin] Upload process started
+[28-Mar-2025 02:27:30 Europe/Berlin] Processing file: file_akte
+[28-Mar-2025 02:27:30 Europe/Berlin] Original name: 05-Model_Data_Relasional-up.pdf
+[28-Mar-2025 02:27:30 Europe/Berlin] Temp path: C:\xampp\tmp\phpA83F.tmp
+[28-Mar-2025 02:27:30 Europe/Berlin] File size: 4355436
+[28-Mar-2025 02:27:30 Europe/Berlin] Detected MIME type: application/pdf
+[28-Mar-2025 02:27:30 Europe/Berlin] Deleting old file: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:27:30 Europe/Berlin] Attempting to move file to: C:\xampp\htdocs\PPDB\process/../uploads/AKTE_HanifUbaidurRohmanSyah.pdf
+[28-Mar-2025 02:27:30 Europe/Berlin] Executing SQL: UPDATE peserta SET file_akte = ? WHERE id = ? with params: Array
+(
+    [0] => AKTE_HanifUbaidurRohmanSyah.pdf
+    [1] => 1
+)
+
