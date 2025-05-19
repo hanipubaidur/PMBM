@@ -96,7 +96,8 @@ CREATE TABLE peserta (
 CREATE TABLE prestasi (
     id INT PRIMARY KEY AUTO_INCREMENT,
     peserta_id INT,
-    bidang_prestasi VARCHAR(100),
+    bidang_prestasi ENUM('Prestasi Akademik', 'Prestasi Olahraga', 'Prestasi Seni', 'Prestasi Non-Akademik'),
+    judul_prestasi VARCHAR(255),
     peringkat VARCHAR(50),
     tingkat ENUM('Kecamatan', 'Kabupaten', 'Provinsi', 'Nasional', 'Internasional'),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
