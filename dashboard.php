@@ -1,21 +1,14 @@
 <?php
-// Start session at the very beginning
 session_start();
-
-// Add this after session_start
 $now = new DateTime('now', new DateTimeZone('Asia/Jakarta'));
 $current_year = (int)$now->format('Y');
 $current_month = (int)$now->format('m');
 $academic_year_start = ($current_month > 6) ? $current_year + 1 : $current_year;
 $academic_year_end = $academic_year_start + 1;
 
-// Debug session
-error_log("Session data: " . print_r($_SESSION, true));
-
 require_once __DIR__.'/config/db.php';
 require_once __DIR__.'/includes/functions.php';
 
-// Check if user is logged in
 if(empty($_SESSION['user'])) {
     $_SESSION['error'] = "Silakan login terlebih dahulu!";
     header("Location: index.php");
@@ -24,70 +17,49 @@ if(empty($_SESSION['user'])) {
 
 try {
     $stmt = $pdo->prepare("SELECT p.*, j.nama_jalur, v.status_verifikasi, v.catatan
-                          FROM peserta p 
-                          LEFT JOIN jalur_pendaftaran j ON p.jalur_id = j.id
-                          LEFT JOIN verifikasi_peserta v ON p.id = v.peserta_id 
-                          WHERE p.id = ?");
+                           FROM peserta p 
+                           LEFT JOIN jalur_pendaftaran j ON p.jalur_id = j.id
+                           LEFT JOIN verifikasi_peserta v ON p.id = v.peserta_id 
+                           WHERE p.id = ?");
     $stmt->execute([$_SESSION['user']['id']]);
     $peserta = $stmt->fetch();
 
-    // Add file completeness check
     $missing_files = [];
     $folder_name = str_replace(' ', '_', strtolower($peserta['nama_lengkap']));
 
-    // Check required files
-    $required_files = [
-        'file_kk' => 'Kartu Keluarga',
-        'file_akte' => 'Akte Kelahiran',
-        'file_photo' => 'Pas Foto'
-    ];
-
+    $required_files = ['file_kk' => 'Kartu Keluarga', 'file_akte' => 'Akte Kelahiran', 'file_photo' => 'Pas Foto'];
     foreach($required_files as $field => $label) {
-        if(empty($peserta[$field]) || !file_exists("File/{$folder_name}/{$peserta[$field]}")) {
-            $missing_files[] = $label;
-        }
+        if(empty($peserta[$field]) || !file_exists("File/{$folder_name}/{$peserta[$field]}")) $missing_files[] = $label;
     }
-
-    // Check Raport
     for($i = 1; $i <= 5; $i++) {
         $field_name = "file_raport_" . $i;
-        if(empty($peserta[$field_name]) || !file_exists("File/{$folder_name}/{$peserta[$field_name]}")) {
-            $missing_files[] = "Raport Semester " . $i;
-        }
+        if(empty($peserta[$field_name]) || !file_exists("File/{$folder_name}/{$peserta[$field_name]}")) $missing_files[] = "Raport Semester " . $i;
     }
 
-    // Get prestasi
     $stmt = $pdo->prepare("SELECT * FROM prestasi WHERE peserta_id = ? ORDER BY created_at DESC");
     $stmt->execute([$_SESSION['user']['id']]);
     $prestasi = $stmt->fetchAll();
 
-    // Get available jalur pendaftaran
     $stmt = $pdo->prepare("SELECT id, nama_jalur FROM jalur_pendaftaran");
     $stmt->execute();
     $jalur_list = $stmt->fetchAll();
 
     $csrf_token = generateCsrfToken();
 } catch(PDOException $e) {
-    error_log("Database Error: ".$e->getMessage());
     $_SESSION['error'] = "Terjadi kesalahan sistem";
     header("Location: index.php");
     exit;
 }
 
-// Handle form submissions
 if($_SERVER['REQUEST_METHOD'] === 'POST') {
     if(!validateCsrfToken($_POST['csrf_token'])) {
         $_SESSION['error'] = "Token keamanan tidak valid!";
         header("Location: dashboard.php");
         exit;
     }
-
-    // Pastikan tidak ada output sebelum JSON
     ob_start();
-
     try {
         if(isset($_POST['update_profile'])) {
-            // Update profile logic
             $fields = [
                 'tempat_lahir', 'tanggal_lahir', 'agama_siswa', 'no_wa_siswa', 'asal_sekolah', 'nik',
                 'alamat_siswa_jalan', 'alamat_siswa_rt', 'alamat_siswa_rw', 'tahun_lulus', 'jalur_id',
@@ -96,39 +68,27 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'agama_ayah', 'agama_ibu', 'no_telp_ortu', 'jenis_kelamin',
                 'alamat_ortu_jalan', 'alamat_ortu_rt', 'alamat_ortu_rw',
                 'alamat_ortu_kelurahan', 'alamat_ortu_kecamatan', 'alamat_ortu_kota',
-                'program_keahlian', 'tempat_lahir_ayah', 'tempat_lahir_ibu', 'tanggal_lahir_ayah', 'tanggal_lahir_ibu'
+                'tempat_lahir_ayah', 'tempat_lahir_ibu', 'tanggal_lahir_ayah', 'tanggal_lahir_ibu',
+                'jarak_ke_sekolah'
             ];
-
-            $updates = [];
-            $params = [];
+            $updates = []; $params = [];
             foreach($fields as $field) {
                 if(isset($_POST[$field])) {
                     $updates[] = "$field = ?";
-                    $params[] = $_POST[$field];
+                    $params[] = $_POST[$field] === '' ? null : $_POST[$field];
                 }
             }
             $params[] = $_SESSION['user']['id'];
-
             if(!empty($updates)) {
                 $sql = "UPDATE peserta SET " . implode(', ', $updates) . " WHERE id = ?";
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute($params);
+                $pdo->prepare($sql)->execute($params);
             }
-
             $_SESSION['success'] = "Data berhasil diperbarui!";
         }
 
         if(isset($_POST['add_prestasi'])) {
-            // Update query insert prestasi
-            $stmt = $pdo->prepare("INSERT INTO prestasi (peserta_id, bidang_prestasi, judul_prestasi, peringkat, tingkat) 
-                          VALUES (?, ?, ?, ?, ?)");
-            $stmt->execute([
-                $_SESSION['user']['id'],
-                $_POST['bidang_prestasi'],
-                $_POST['judul_prestasi'],
-                $_POST['peringkat'],
-                $_POST['tingkat']
-            ]);
+            $stmt = $pdo->prepare("INSERT INTO prestasi (peserta_id, bidang_prestasi, judul_prestasi, peringkat, tingkat) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$_SESSION['user']['id'], $_POST['bidang_prestasi'], $_POST['judul_prestasi'], $_POST['peringkat'], $_POST['tingkat']]);
             $_SESSION['success'] = "Prestasi berhasil ditambahkan!";
         }
 
@@ -137,17 +97,9 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$_POST['prestasi_id'], $_SESSION['user']['id']]);
             $_SESSION['success'] = "Prestasi berhasil dihapus!";
         }
-
-        ob_clean(); // Bersihkan output buffer sebelum mengirim JSON
-        header("Location: dashboard.php");
-        exit;
-
+        ob_clean(); header("Location: dashboard.php"); exit;
     } catch(PDOException $e) {
-        ob_clean(); // Bersihkan output buffer sebelum mengirim JSON
-        error_log("Database Error: ".$e->getMessage());
-        $_SESSION['error'] = "Terjadi kesalahan sistem";
-        header("Location: dashboard.php");
-        exit;
+        ob_clean(); $_SESSION['error'] = "Terjadi kesalahan sistem"; header("Location: dashboard.php"); exit;
     }
 }
 ?>
@@ -156,723 +108,386 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - PPDB MAN 1 Musi Rawas</title>
+    <title>Edit Data - PMBM MAN 1 Musi Rawas</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <link rel="stylesheet" href="assets/css/style.css">
     <style>
-        body {
-            padding-top: 100px;
-        }
-        .navbar {
-            position: fixed;
-            top: 0;
-            width: 100%;
-            z-index: 1030;
-        }
+        body { padding-top: 90px; background-color: #f8f9fa; }
+        .doc-card { transition: transform 0.2s; border: 1px solid #e9ecef; }
+        .doc-card:hover { transform: translateY(-3px); box-shadow: 0 4px 15px rgba(0,0,0,0.1) !important; }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg bg-white shadow-sm fixed-top">
+    <nav class="navbar navbar-expand-lg bg-white shadow-sm border-bottom fixed-top py-2">
         <div class="container">
             <a class="navbar-brand d-flex align-items-center text-primary" href="index.php">
-                <img src="https://freeimghost.net/images/2025/04/04/logo_kemenag.png" alt="Logo" height="40" class="me-2">
+                <img src="https://cdn.postimage.me/2026/04/11/logo-kemenag.png" alt="Logo" height="40" class="me-2 drop-shadow-sm">
                 <div class="d-flex flex-column">
-                    <span class="fw-bold">PPDB MAN 1 MUSI RAWAS</span>
-                    <small class="text-muted">Tahun Ajaran <?= $academic_year_start . '/' . $academic_year_end ?></small>
+                    <span class="fw-bold" style="letter-spacing: 0.5px;">PMBM MAN 1 MUSI RAWAS</span>
+                    <small class="text-muted fw-medium" style="font-size: 0.75rem;">Tahun Ajaran <?= $academic_year_start . '/' . $academic_year_end ?></small>
                 </div>
             </a>
             <button class="navbar-toggler border-primary" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon text-primary"></span>
+                <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                </ul>
+                <ul class="navbar-nav me-auto"></ul>
                 <div class="d-flex gap-2">
-                    <a href="profile.php" class="btn btn-success">
-                        <i class="bi bi-person"></i> Profile
-                    </a>
-                    <a href="logout.php" class="btn btn-danger">
-                        <i class="bi bi-box-arrow-right"></i> Logout
-                    </a>
+                    <a href="profile.php" class="btn btn-outline-success rounded-pill px-4 fw-medium shadow-sm"><i class="bi bi-person me-1"></i> Profile</a>
+                    <a href="logout.php" class="btn btn-danger rounded-pill px-4 fw-medium shadow-sm"><i class="bi bi-box-arrow-right me-1"></i> Logout</a>
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- Main Content with preserved PHP logic -->
     <div class="container">
-        <?php if(isset($_SESSION['error'])): ?>
-            <div class="alert alert-danger"><?= htmlspecialchars($_SESSION['error']) ?></div>
-            <?php unset($_SESSION['error']); ?>
-        <?php endif; ?>
-
-        <?php if(isset($_SESSION['success'])): ?>
-            <div class="alert alert-success"><?= htmlspecialchars($_SESSION['success']) ?></div>
-            <?php unset($_SESSION['success']); ?>
-        <?php endif; ?>
-
-        <!-- Check file completeness -->
-        <?php
-        $missing_files = [];
-        $folder_name = str_replace(' ', '_', strtolower($peserta['nama_lengkap']));
-
-        // Check required files
-        $required_files = [
-            'file_kk' => 'Kartu Keluarga',
-            'file_akte' => 'Akte Kelahiran',
-            'file_photo' => 'Pas Foto'
-        ];
-
-        foreach($required_files as $field => $label) {
-            if(empty($peserta[$field]) || !file_exists("File/{$folder_name}/{$peserta[$field]}")) {
-                $missing_files[] = $label;
-            }
-        }
-
-        // Check Raport
-        for($i = 1; $i <= 5; $i++) {
-            $field_name = "file_raport_" . $i;
-            if(empty($peserta[$field_name]) || !file_exists("File/{$folder_name}/{$peserta[$field_name]}")) {
-                $missing_files[] = "Raport Semester " . $i;
-            }
-        }
-
-        if(!empty($missing_files)): ?>
-            <div class="alert alert-warning">
-                <h5 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Perhatian!</h5>
-                <p class="mb-0">Silakan lengkapi berkas-berkas berikut:</p>
-                <ul class="mb-0">
-                    <?php foreach($missing_files as $file): ?>
-                        <li><?= htmlspecialchars($file) ?></li>
-                    <?php endforeach; ?>
-                </ul>
+        <?php if(!empty($missing_files)): ?>
+            <div class="alert alert-danger shadow-sm border-0 rounded-4 d-flex align-items-center mb-4">
+                <i class="bi bi-exclamation-octagon-fill fs-3 me-3"></i>
+                <div>
+                    <strong class="d-block mb-1">Perhatian! Dokumen Belum Lengkap</strong>
+                    <span class="small">Mohon segera upload: <?= implode(', ', $missing_files) ?> di bagian bawah halaman.</span>
+                </div>
             </div>
         <?php endif; ?>
 
         <div class="row">
-            <div class="col-md-8">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h4 class="mb-0"><i class="bi bi-person-circle"></i> Data Diri</h4>
-                    </div>
-                    <div class="card-body">
-                        <!-- Data Pendaftaran Awal -->
-                        <div class="alert alert-info mb-4">
-                            <h5 class="alert-heading">Data Pendaftaran</h5>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <p class="mb-1"><strong>Nama Lengkap:</strong> <?= htmlspecialchars($peserta['nama_lengkap']) ?></p>
-                                    <p class="mb-1"><strong>NISN:</strong> <?= htmlspecialchars($peserta['nisn']) ?></p>
-                                    <p class="mb-1"><strong>No. WhatsApp:</strong> <?= htmlspecialchars($peserta['no_wa_siswa']) ?></p>
-                                    <p class="mb-1"><strong>Status:</strong> 
-                                    <?php 
-                                    $status = $peserta['status_verifikasi'] ?? 'Pending';
-                                    if ($status === 'Verified') {
-                                        echo "<span class='badge bg-success'>Terverifikasi</span>";
-                                    } elseif ($status === 'rejected') {
-                                        echo "<span class='badge bg-danger'>Ditolak</span>";
-                                        echo "<br><small class='text-danger mt-1'>Silahkan periksa kembali kelengkapan data anda</small>";
-                                    } else {
-                                        echo "<span class='badge bg-warning text-dark'>Belum Diverifikasi</span>";
-                                    }
-                                    ?>
-                                    </p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p class="mb-1"><strong>Asal Sekolah:</strong> <?= htmlspecialchars($peserta['asal_sekolah']) ?></p>
-                                    <p class="mb-1"><strong>Tahun Lulus:</strong> <?= htmlspecialchars($peserta['tahun_lulus']) ?></p>
-                                    <p class="mb-1"><strong>Jalur Pendaftaran:</strong> <?= htmlspecialchars($peserta['nama_jalur']) ?></p>
-                                    <p class="mb-1"><strong>Tanggal Daftar:</strong> <?= date('d/m/Y', strtotime($peserta['created_at'])) ?></p>
-                                </div>
-                            </div>
-
-                            <?php if(!empty($peserta['catatan'])): ?>
-                            <div class="mt-3">
-                                <div class="alert alert-warning mb-0">
-                                    <h6 class="alert-heading"><i class="bi bi-exclamation-triangle"></i> Catatan dari Admin:</h6>
-                                    <p class="mb-0"><?= nl2br(htmlspecialchars($peserta['catatan'])) ?></p>
-                                    <?php if($status === 'rejected'): ?>
-                                    <hr>
-                                    <small class="text-danger">
-                                        <i class="bi bi-info-circle"></i> 
-                                        Silakan perbaiki data sesuai catatan di atas dan lengkapi dokumen yang diminta
-                                    </small>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <?php endif; ?>
+            <div class="col-lg-8">
+                <div class="card shadow-sm mb-4 border-0 rounded-4 bg-white overflow-hidden">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold mb-0 text-primary"><i class="bi bi-info-circle-fill me-2"></i>Status Akun</h5>
+                            <?php 
+                            $status = $peserta['status_verifikasi'] ?? 'Pending';
+                            if ($status === 'Verified') echo "<span class='badge bg-success px-3 py-2 rounded-pill'><i class='bi bi-check-circle-fill'></i> Terverifikasi</span>";
+                            elseif ($status === 'rejected') echo "<span class='badge bg-danger px-3 py-2 rounded-pill'><i class='bi bi-x-circle-fill'></i> Ditolak</span>";
+                            else echo "<span class='badge bg-warning text-dark px-3 py-2 rounded-pill'><i class='bi bi-hourglass-split'></i> Belum Diverifikasi</span>";
+                            ?>
                         </div>
-
-                        <?php if($status === 'Verified'): ?>
-                        <div class="alert alert-success mb-4">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <div>
-                                    <h5 class="alert-heading mb-1">Pengumuman Kelulusan</h5>
-                                    <p class="mb-0">Lihat hasil pengumuman kelulusan Anda</p>
-                                </div>
-                                <a href="pengumuman.php" class="btn btn-primary">
-                                    <i class="bi bi-megaphone"></i> Lihat Pengumuman
-                                </a>
+                        <div class="row g-3 bg-light p-3 rounded-3">
+                            <div class="col-sm-6">
+                                <div class="text-muted small">Nama Lengkap</div>
+                                <div class="fw-bold"><?= htmlspecialchars($peserta['nama_lengkap']) ?></div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="text-muted small">Jalur Pilihan</div>
+                                <div class="fw-bold text-primary"><?= htmlspecialchars($peserta['nama_jalur']) ?></div>
                             </div>
                         </div>
+                        <?php if(!empty($peserta['catatan'])): ?>
+                            <div class="alert alert-warning mt-3 mb-0 small rounded-3 border-0">
+                                <strong><i class="bi bi-chat-left-dots-fill me-1"></i> Catatan Admin:</strong><br>
+                                <?= nl2br(htmlspecialchars($peserta['catatan'])) ?>
+                            </div>
                         <?php endif; ?>
+                    </div>
+                </div>
 
-                        <form method="post" enctype="multipart/form-data" id="uploadForm">
-                            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
-                            <input type="hidden" name="update_profile" value="1">
-                            
-                            <!-- Biodata Siswa -->
-                            <h5 class="mt-4 bg-light p-2 rounded"><i class="bi bi-person"></i> Biodata Siswa</h5>
-                            
-                            <div class="row mb-3">
+                <form method="post" enctype="multipart/form-data" id="uploadForm">
+                    <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                    <input type="hidden" name="update_profile" value="1">
+                    
+                    <div class="card shadow-sm mb-4 border-0 rounded-4">
+                        <div class="card-header bg-primary text-white rounded-top-4 py-3">
+                            <h5 class="mb-0"><i class="bi bi-person-vcard me-2"></i>Edit Biodata Siswa</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="row g-3 mb-3">
                                 <div class="col-md-6">
-                                    <label>NISN</label>
-                                    <input type="text" class="form-control" value="<?= htmlspecialchars($peserta['nisn']) ?>" readonly>
+                                    <label class="form-label small text-muted">NISN</label>
+                                    <input type="text" class="form-control bg-light" value="<?= htmlspecialchars($peserta['nisn']) ?>" readonly>
                                 </div>
                                 <div class="col-md-6">
-                                    <label>NIK</label>
-                                    <input type="text" class="form-control" name="nik" value="<?= htmlspecialchars($peserta['nik'] ?? '') ?>" 
-                                           pattern="[0-9]{16}" title="NIK harus 16 digit" required>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label>Tempat Lahir</label>
-                                    <input type="text" class="form-control" name="tempat_lahir" 
-                                           value="<?= htmlspecialchars($peserta['tempat_lahir'] ?? '') ?>" required>
+                                    <label class="form-label small text-muted">NIK Siswa</label>
+                                    <input type="text" class="form-control" name="nik" value="<?= htmlspecialchars($peserta['nik'] ?? '') ?>" pattern="[0-9]{16}" title="16 Digit NIK" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label>Tanggal Lahir</label>
-                                    <input type="date" class="form-control" name="tanggal_lahir" 
-                                           value="<?= htmlspecialchars($peserta['tanggal_lahir'] ?? '') ?>" required>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label>No. WhatsApp Siswa</label>
-                                    <input type="tel" class="form-control" name="no_wa_siswa" 
-                                           value="<?= htmlspecialchars($peserta['no_wa_siswa'] ?? '') ?>" required>
+                                    <label class="form-label small text-muted">Tempat Lahir</label>
+                                    <input type="text" class="form-control" name="tempat_lahir" value="<?= htmlspecialchars($peserta['tempat_lahir'] ?? '') ?>" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label>Asal Sekolah</label>
-                                    <input type="text" class="form-control" name="asal_sekolah" 
-                                           value="<?= htmlspecialchars($peserta['asal_sekolah']) ?>" required>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label>Tahun Lulus</label>
-                                    <input type="number" class="form-control" name="tahun_lulus" 
-                                           value="<?= htmlspecialchars($peserta['tahun_lulus'] ?? '') ?>" 
-                                           min="2020" max="2025" required>
+                                    <label class="form-label small text-muted">Tanggal Lahir</label>
+                                    <input type="date" class="form-control" name="tanggal_lahir" value="<?= htmlspecialchars($peserta['tanggal_lahir'] ?? '') ?>" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label>Jalur Pendaftaran</label>
+                                    <label class="form-label small text-muted">No. WhatsApp</label>
+                                    <input type="tel" class="form-control" name="no_wa_siswa" value="<?= htmlspecialchars($peserta['no_wa_siswa'] ?? '') ?>" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted">Asal Sekolah (SMP/MTs)</label>
+                                    <input type="text" class="form-control" name="asal_sekolah" value="<?= htmlspecialchars($peserta['asal_sekolah']) ?>" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted">Tahun Lulus</label>
+                                    <input type="number" class="form-control" name="tahun_lulus" value="<?= htmlspecialchars($peserta['tahun_lulus'] ?? '') ?>" min="2020" max="2030" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted">Jalur Pendaftaran</label>
                                     <?php if($peserta['jalur_id']): ?>
-                                        <input type="text" class="form-control" value="<?= htmlspecialchars($peserta['nama_jalur']) ?>" readonly>
+                                        <input type="text" class="form-control bg-light" value="<?= htmlspecialchars($peserta['nama_jalur']) ?>" readonly>
                                         <input type="hidden" name="jalur_id" value="<?= $peserta['jalur_id'] ?>">
                                     <?php else: ?>
                                         <select class="form-select" name="jalur_id" required>
                                             <?php foreach($jalur_list as $jalur): ?>
-                                                <option value="<?= $jalur['id'] ?>" <?= ($peserta['jalur_id'] ?? '') == $jalur['id'] ? 'selected' : '' ?>>
-                                                    <?= htmlspecialchars($jalur['nama_jalur']) ?>
-                                                </option>
+                                                <option value="<?= $jalur['id'] ?>"><?= htmlspecialchars($jalur['nama_jalur']) ?></option>
                                             <?php endforeach; ?>
                                         </select>
                                     <?php endif; ?>
                                 </div>
-                            </div>
-
-                            <h6 class="mb-3">Alamat Siswa</h6>
-                            <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label>Jalan/Kampung</label>
-                                    <input type="text" class="form-control" name="alamat_siswa_jalan" 
-                                        value="<?= htmlspecialchars($peserta['alamat_siswa_jalan'] ?? '') ?>" required>
-                                </div>
-                            </div>
-
-                            <h6 class="mb-3">Alamat Siswa</h6>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label>RT</label>
-                                    <input type="number" class="form-control" name="alamat_siswa_rt" 
-                                           value="<?= htmlspecialchars($peserta['alamat_siswa_rt'] ?? '') ?>" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label>RW</label>
-                                    <input type="number" class="form-control" name="alamat_siswa_rw" 
-                                           value="<?= htmlspecialchars($peserta['alamat_siswa_rw'] ?? '') ?>" required>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-4">
-                                    <label>Kelurahan/Desa</label>
-                                    <input type="text" class="form-control" name="alamat_siswa_kelurahan" 
-                                           value="<?= htmlspecialchars($peserta['alamat_siswa_kelurahan'] ?? '') ?>" required>
-                                </div>
-                                <div class="col-md-4">
-                                    <label>Kecamatan</label>
-                                    <input type="text" class="form-control" name="alamat_siswa_kecamatan" 
-                                           value="<?= htmlspecialchars($peserta['alamat_siswa_kecamatan'] ?? '') ?>" required>
-                                </div>
-                                <div class="col-md-4">
-                                    <label>Kabupaten/Kota</label>
-                                    <input type="text" class="form-control" name="alamat_siswa_kota" 
-                                           value="<?= htmlspecialchars($peserta['alamat_siswa_kota'] ?? '') ?>" required>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <div class="col-md-6">
-                                    <label>Agama</label>
+                                    <label class="form-label small text-muted">Agama</label>
                                     <select class="form-select" name="agama_siswa" required>
-                                        <?php
-                                        $agama_list = ['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'];
-                                        foreach($agama_list as $agama_siswa): ?>
-                                            <option value="<?= $agama_siswa ?>" <?= ($peserta['agama_siswa'] ?? '') === $agama_siswa ? 'selected' : '' ?>>
-                                                <?= $agama_siswa ?>
-                                            </option>
+                                        <?php foreach(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'] as $a): ?>
+                                            <option value="<?= $a ?>" <?= ($peserta['agama_siswa'] ?? '') === $a ? 'selected' : '' ?>><?= $a ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
-
-                                <div class="col-md-6 mt-2">
-                                    <label>Jenis Kelamin</label>
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted">Jenis Kelamin</label>
                                     <select class="form-select" name="jenis_kelamin" required>
-                                        <?php
-                                        $kelamin_list = ['Laki-Laki', 'Perempuan'];
-                                        foreach($kelamin_list as $jenis_kelamin): ?>
-                                            <option value="<?= $jenis_kelamin ?>" <?= ($peserta['jenis_kelamin'] ?? '') === $jenis_kelamin ? 'selected' : '' ?>>
-                                                <?= $jenis_kelamin ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-
-                            </div>
-
-                            <!-- Biodata Orang Tua -->
-                            <h5 class="mt-4 bg-light p-2 rounded"><i class="bi bi-people"></i> Biodata Orang Tua</h5>
-                            <div class="mb-3">
-                                <label>No. KK</label>
-                                <input type="NUMBER" class="form-control" name="no_kk" 
-                                       value="<?= htmlspecialchars($peserta['no_kk'] ?? '') ?>" required>
-                            </div>
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label>Nama Ayah</label>
-                                    <input type="text" class="form-control" name="nama_ayah" 
-                                           value="<?= htmlspecialchars($peserta['nama_ayah'] ?? '') ?>" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label>Nama Ibu</label>
-                                    <input type="text" class="form-control" name="nama_ibu" 
-                                           value="<?= htmlspecialchars($peserta['nama_ibu'] ?? '') ?>" required>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label>Tempat Lahir Ayah</label>
-                                    <input type="text" class="form-control" name="tempat_lahir_ayah" 
-                                           value="<?= htmlspecialchars($peserta['tempat_lahir_ayah'] ?? '') ?>" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label>Tempat Lahir Ibu</label>
-                                    <input type="text" class="form-control" name="tempat_lahir_ibu" 
-                                           value="<?= htmlspecialchars($peserta['tempat_lahir_ibu'] ?? '') ?>" required>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label>Tanggal Lahir Ayah</label>
-                                    <input type="date" class="form-control" name="tanggal_lahir_ayah" 
-                                           value="<?= htmlspecialchars($peserta['tanggal_lahir_ayah'] ?? '') ?>" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label>Tanggal Lahir Ibu</label>
-                                    <input type="date" class="form-control" name="tanggal_lahir_ibu" 
-                                           value="<?= htmlspecialchars($peserta['tanggal_lahir_ibu'] ?? '') ?>" required>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label>Pekerjaan Ayah</label>
-                                    <input type="text" class="form-control" name="pekerjaan_ayah" 
-                                           value="<?= htmlspecialchars($peserta['pekerjaan_ayah'] ?? '') ?>" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label>Pekerjaan Ibu</label>
-                                    <input type="text" class="form-control" name="pekerjaan_ibu" 
-                                           value="<?= htmlspecialchars($peserta['pekerjaan_ibu'] ?? '') ?>" required>
-                                </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label>Agama Ayah</label>
-                                    <select class="form-select" name="agama_ayah" required>
-                                        <?php foreach($agama_list as $agama): ?>
-                                            <option value="<?= $agama ?>" <?= ($peserta['agama_ayah'] ?? '') === $agama ? 'selected' : '' ?>>
-                                                <?= $agama ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label>Agama Ibu</label>
-                                    <select class="form-select" name="agama_ibu" required>
-                                        <?php foreach($agama_list as $agama): ?>
-                                            <option value="<?= $agama ?>" <?= ($peserta['agama_ibu'] ?? '') === $agama ? 'selected' : '' ?>>
-                                                <?= $agama ?>
-                                            </option>
-                                        <?php endforeach; ?>
+                                        <option value="Laki-Laki" <?= ($peserta['jenis_kelamin'] ?? '') === 'Laki-Laki' ? 'selected' : '' ?>>Laki-Laki</option>
+                                        <option value="Perempuan" <?= ($peserta['jenis_kelamin'] ?? '') === 'Perempuan' ? 'selected' : '' ?>>Perempuan</option>
                                     </select>
                                 </div>
                             </div>
 
-                            <h6 class="mb-3">Alamat Orang Tua</h6>
-                            <div class="mb-3">
-                                <label>Jalan/Kampung</label>
-                                <input type="text" class="form-control" name="alamat_ortu_jalan" 
-                                       value="<?= htmlspecialchars($peserta['alamat_ortu_jalan'] ?? '') ?>" required>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-6">
-                                    <label>RT</label>
-                                    <input type="number" class="form-control" name="alamat_ortu_rt" 
-                                           value="<?= htmlspecialchars($peserta['alamat_ortu_rt'] ?? '') ?>" required>
+                            <hr class="my-4">
+                            <h6 class="text-primary mb-3">Detail Alamat Tempat Tinggal</h6>
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <label class="form-label small text-muted">Jalan / Nama Dusun</label>
+                                    <input type="text" class="form-control" name="alamat_siswa_jalan" value="<?= htmlspecialchars($peserta['alamat_siswa_jalan'] ?? '') ?>" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label>RW</label>
-                                    <input type="number" class="form-control" name="alamat_ortu_rw" 
-                                           value="<?= htmlspecialchars($peserta['alamat_ortu_rw'] ?? '') ?>" required>
+                                    <label class="form-label small text-muted">RT</label>
+                                    <input type="number" class="form-control" name="alamat_siswa_rt" value="<?= htmlspecialchars($peserta['alamat_siswa_rt'] ?? '') ?>" required>
                                 </div>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-md-4">
-                                    <label>Kelurahan/Desa</label>
-                                    <input type="text" class="form-control" name="alamat_ortu_kelurahan" 
-                                           value="<?= htmlspecialchars($peserta['alamat_ortu_kelurahan'] ?? '') ?>" required>
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted">RW</label>
+                                    <input type="number" class="form-control" name="alamat_siswa_rw" value="<?= htmlspecialchars($peserta['alamat_siswa_rw'] ?? '') ?>" required>
                                 </div>
                                 <div class="col-md-4">
-                                    <label>Kecamatan</label>
-                                    <input type="text" class="form-control" name="alamat_ortu_kecamatan" 
-                                           value="<?= htmlspecialchars($peserta['alamat_ortu_kecamatan'] ?? '') ?>" required>
+                                    <label class="form-label small text-muted">Desa / Kelurahan</label>
+                                    <input type="text" class="form-control" name="alamat_siswa_kelurahan" value="<?= htmlspecialchars($peserta['alamat_siswa_kelurahan'] ?? '') ?>" required>
                                 </div>
                                 <div class="col-md-4">
-                                    <label>Kabupaten/Kota</label>
-                                    <input type="text" class="form-control" name="alamat_ortu_kota" 
-                                           value="<?= htmlspecialchars($peserta['alamat_ortu_kota'] ?? '') ?>" required>
+                                    <label class="form-label small text-muted">Kecamatan</label>
+                                    <input type="text" class="form-control" name="alamat_siswa_kecamatan" value="<?= htmlspecialchars($peserta['alamat_siswa_kecamatan'] ?? '') ?>" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label small text-muted">Kabupaten / Kota</label>
+                                    <input type="text" class="form-control" name="alamat_siswa_kota" value="<?= htmlspecialchars($peserta['alamat_siswa_kota'] ?? '') ?>" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small text-muted">Jarak ke Sekolah (km) <span class="text-info">*Opsional</span></label>
+                                    <input type="number" step="0.01" class="form-control" name="jarak_ke_sekolah" value="<?= htmlspecialchars($peserta['jarak_ke_sekolah'] ?? '') ?>" placeholder="Misal: 2.5">
                                 </div>
                             </div>
+                        </div>
+                    </div>
 
-                            <div class="mb-3">
-                                <label>No. Telp Orang Tua</label>
-                                <input type="tel" class="form-control" name="no_telp_ortu" 
-                                       value="<?= htmlspecialchars($peserta['no_telp_ortu'] ?? '') ?>" required>
+                    <div class="card shadow-sm mb-4 border-0 rounded-4">
+                        <div class="card-header bg-success text-white rounded-top-4 py-3">
+                            <h5 class="mb-0"><i class="bi bi-people-fill me-2"></i>Edit Data Orang Tua</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">Nomor Kartu Keluarga (KK)</label>
+                                <input type="number" class="form-control border-success text-success fw-bold" name="no_kk" value="<?= htmlspecialchars($peserta['no_kk'] ?? '') ?>" required>
                             </div>
-
-                            <!-- Data Lainnya -->
-                            <h5 class="mt-4 bg-light p-2 rounded"><i class="bi bi-card-list"></i> Data Lainnya</h5>
-
-                            <div class="mb-3">
-                                <label>Program Keahlian</label>
-                                <select class="form-select" name="program_keahlian" required>
-                                    <option value="">- Pilih -</option>
-                                    <?php
-                                    $program_list = ['IPA', 'IPS', 'Bahasa', 'Keagamaan'];
-                                    foreach($program_list as $program): ?>
-                                        <option value="<?= $program ?>" <?= ($peserta['program_keahlian'] ?? '') === $program ? 'selected' : '' ?>>
-                                            <?= $program ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-
-                            <?php if($peserta['jarak_ke_sekolah']): ?>
-                            <div class="mb-3">
-                                <label>Jarak ke Sekolah</label>
-                                <input type="text" class="form-control" value="<?= htmlspecialchars($peserta['jarak_ke_sekolah']) ?> km" readonly>
-                                <small class="text-muted">Diisi oleh admin/panitia</small>
-                            </div>
-                            <?php endif; ?>
-
-                            <!-- Upload Dokumen Section -->
-                            <h5 class="mt-4">Upload Dokumen</h5>
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <h6>Kartu Keluarga</h6>
-                                            <?php 
-                                            $folder_name = str_replace(' ', '_', strtolower($peserta['nama_lengkap']));
-                                            if(!empty($peserta['file_kk']) && file_exists("File/{$folder_name}/{$peserta['file_kk']}")): ?>
-                                                <p class="mb-2"><small class="text-muted"><?= htmlspecialchars($peserta['file_kk']) ?></small></p>
-                                            <?php endif; ?>
-                                            <div class="mt-2">
-                                                <input type="file" class="form-control file-upload" name="file_kk" 
-                                                       accept="application/pdf" data-type="kk">
-                                                <small class="text-muted">Upload KK (PDF, max 5MB)</small>
-                                            </div>
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3 border">
+                                        <h6 class="text-success mb-3 border-bottom pb-2">Identitas Ayah</h6>
+                                        <div class="mb-2"><label class="form-label small text-muted">Nama Lengkap</label><input type="text" class="form-control form-control-sm" name="nama_ayah" value="<?= htmlspecialchars($peserta['nama_ayah'] ?? '') ?>" required></div>
+                                        <div class="mb-2"><label class="form-label small text-muted">Tempat Lahir</label><input type="text" class="form-control form-control-sm" name="tempat_lahir_ayah" value="<?= htmlspecialchars($peserta['tempat_lahir_ayah'] ?? '') ?>" required></div>
+                                        <div class="mb-2"><label class="form-label small text-muted">Tanggal Lahir</label><input type="date" class="form-control form-control-sm" name="tanggal_lahir_ayah" value="<?= htmlspecialchars($peserta['tanggal_lahir_ayah'] ?? '') ?>" required></div>
+                                        <div class="mb-2"><label class="form-label small text-muted">Pekerjaan</label><input type="text" class="form-control form-control-sm" name="pekerjaan_ayah" value="<?= htmlspecialchars($peserta['pekerjaan_ayah'] ?? '') ?>" required></div>
+                                        <div class="mb-0"><label class="form-label small text-muted">Agama</label>
+                                            <select class="form-select form-select-sm" name="agama_ayah" required>
+                                                <?php foreach(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'] as $a): ?><option value="<?= $a ?>" <?= ($peserta['agama_ayah'] ?? '') === $a ? 'selected' : '' ?>><?= $a ?></option><?php endforeach; ?>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <h6>Akte Kelahiran</h6>
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3 border">
+                                        <h6 class="text-success mb-3 border-bottom pb-2">Identitas Ibu</h6>
+                                        <div class="mb-2"><label class="form-label small text-muted">Nama Lengkap</label><input type="text" class="form-control form-control-sm" name="nama_ibu" value="<?= htmlspecialchars($peserta['nama_ibu'] ?? '') ?>" required></div>
+                                        <div class="mb-2"><label class="form-label small text-muted">Tempat Lahir</label><input type="text" class="form-control form-control-sm" name="tempat_lahir_ibu" value="<?= htmlspecialchars($peserta['tempat_lahir_ibu'] ?? '') ?>" required></div>
+                                        <div class="mb-2"><label class="form-label small text-muted">Tanggal Lahir</label><input type="date" class="form-control form-control-sm" name="tanggal_lahir_ibu" value="<?= htmlspecialchars($peserta['tanggal_lahir_ibu'] ?? '') ?>" required></div>
+                                        <div class="mb-2"><label class="form-label small text-muted">Pekerjaan</label><input type="text" class="form-control form-control-sm" name="pekerjaan_ibu" value="<?= htmlspecialchars($peserta['pekerjaan_ibu'] ?? '') ?>" required></div>
+                                        <div class="mb-0"><label class="form-label small text-muted">Agama</label>
+                                            <select class="form-select form-select-sm" name="agama_ibu" required>
+                                                <?php foreach(['Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'] as $a): ?><option value="<?= $a ?>" <?= ($peserta['agama_ibu'] ?? '') === $a ? 'selected' : '' ?>><?= $a ?></option><?php endforeach; ?>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mt-4">
+                                <h6 class="text-success mb-3">Alamat & Kontak Orang Tua</h6>
+                                <div class="mb-3">
+                                    <label class="form-label small text-muted">No. Handphone Aktif (Bisa Dihubungi)</label>
+                                    <input type="tel" class="form-control w-50" name="no_telp_ortu" value="<?= htmlspecialchars($peserta['no_telp_ortu'] ?? '') ?>" required>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-12"><label class="form-label small text-muted">Jalan / Dusun</label><input type="text" class="form-control" name="alamat_ortu_jalan" value="<?= htmlspecialchars($peserta['alamat_ortu_jalan'] ?? '') ?>" required></div>
+                                    <div class="col-md-6"><label class="form-label small text-muted">RT</label><input type="number" class="form-control" name="alamat_ortu_rt" value="<?= htmlspecialchars($peserta['alamat_ortu_rt'] ?? '') ?>" required></div>
+                                    <div class="col-md-6"><label class="form-label small text-muted">RW</label><input type="number" class="form-control" name="alamat_ortu_rw" value="<?= htmlspecialchars($peserta['alamat_ortu_rw'] ?? '') ?>" required></div>
+                                    <div class="col-md-4"><label class="form-label small text-muted">Kelurahan</label><input type="text" class="form-control" name="alamat_ortu_kelurahan" value="<?= htmlspecialchars($peserta['alamat_ortu_kelurahan'] ?? '') ?>" required></div>
+                                    <div class="col-md-4"><label class="form-label small text-muted">Kecamatan</label><input type="text" class="form-control" name="alamat_ortu_kecamatan" value="<?= htmlspecialchars($peserta['alamat_ortu_kecamatan'] ?? '') ?>" required></div>
+                                    <div class="col-md-4"><label class="form-label small text-muted">Kab/Kota</label><input type="text" class="form-control" name="alamat_ortu_kota" value="<?= htmlspecialchars($peserta['alamat_ortu_kota'] ?? '') ?>" required></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card shadow-sm mb-4 border-0 rounded-4">
+                        <div class="card-header bg-secondary text-white rounded-top-4 py-3">
+                            <h5 class="mb-0"><i class="bi bi-cloud-arrow-up-fill me-2"></i>Upload Berkas Persyaratan</h5>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="alert alert-light border shadow-sm small mb-4">
+                                <i class="bi bi-info-circle-fill text-info me-2"></i><strong>Panduan Upload:</strong>
+                                <ul class="mb-0 mt-1 ps-3">
+                                    <li>Format dokumen: <strong>PDF</strong> (Maksimal 5MB)</li>
+                                    <li>Format pas foto: <strong>JPG/PNG</strong> (Otomatis di-compress jika > 5MB)</li>
+                                </ul>
+                            </div>
+
+                            <h6 class="mb-3 border-bottom pb-2">Dokumen Utama</h6>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-4">
+                                    <div class="card h-100 doc-card shadow-sm bg-white border">
+                                        <div class="card-body text-center d-flex flex-column align-items-center">
+                                            <h6 class="card-title fw-bold text-dark">Kartu Keluarga</h6>
+                                            <?php if(!empty($peserta['file_kk']) && file_exists("File/{$folder_name}/{$peserta['file_kk']}")): ?>
+                                                <i class="bi bi-check-circle-fill text-success fs-1 mb-2"></i>
+                                                <p class="small text-muted text-truncate w-100 mb-2">Tersimpan</p>
+                                            <?php else: ?><i class="bi bi-x-circle text-danger fs-1 mb-2"></i><?php endif; ?>
+                                            <input type="file" class="form-control form-control-sm file-upload mt-auto w-100" name="file_kk" accept="application/pdf" data-type="kk">
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card h-100 doc-card shadow-sm bg-white border">
+                                        <div class="card-body text-center d-flex flex-column align-items-center">
+                                            <h6 class="card-title fw-bold text-dark">Akte Kelahiran</h6>
                                             <?php if(!empty($peserta['file_akte']) && file_exists("File/{$folder_name}/{$peserta['file_akte']}")): ?>
-                                                <p class="mb-2"><small class="text-muted"><?= htmlspecialchars($peserta['file_akte']) ?></small></p>
-                                            <?php endif; ?>
-                                            <div class="mt-2">
-                                                <input type="file" class="form-control file-upload" name="file_akte" 
-                                                       accept="application/pdf" data-type="akte">
-                                                <small class="text-muted">Upload Akte (PDF, max 5MB)</small>
-                                            </div>
+                                                <i class="bi bi-check-circle-fill text-success fs-1 mb-2"></i>
+                                                <p class="small text-muted text-truncate w-100 mb-2">Tersimpan</p>
+                                            <?php else: ?><i class="bi bi-x-circle text-danger fs-1 mb-2"></i><?php endif; ?>
+                                            <input type="file" class="form-control form-control-sm file-upload mt-auto w-100" name="file_akte" accept="application/pdf" data-type="akte">
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <h6>Pas Foto</h6>
+                                <div class="col-md-4">
+                                    <div class="card h-100 doc-card shadow-sm bg-white border">
+                                        <div class="card-body text-center d-flex flex-column align-items-center">
+                                            <h6 class="card-title fw-bold text-dark">Pas Foto</h6>
                                             <?php if(!empty($peserta['file_photo']) && file_exists("File/{$folder_name}/{$peserta['file_photo']}")): ?>
-                                                <p class="mb-2"><small class="text-muted"><?= htmlspecialchars($peserta['file_photo']) ?></small></p>
-                                            <?php endif; ?>
-                                            <div class="mt-2">
-                                                <input type="file" class="form-control file-upload" name="file_photo" 
-                                                       accept="image/jpeg,image/png" data-type="photo">
-                                                <small class="text-muted">Upload Foto (JPG/PNG, max 5MB)</small>
-                                            </div>
+                                                <img src="File/<?= $folder_name ?>/<?= $peserta['file_photo'] ?>?v=<?= time() ?>" class="img-thumbnail shadow-sm mb-2" style="width: 50px; height: 60px; object-fit: cover;">
+                                            <?php else: ?><i class="bi bi-person-bounding-box text-danger fs-1 mb-2"></i><?php endif; ?>
+                                            <input type="file" class="form-control form-control-sm file-upload mt-auto w-100" name="file_photo" accept="image/jpeg,image/png" data-type="photo">
                                         </div>
                                     </div>
                                 </div>
                             </div>
 
-                            <!-- Raport uploads -->
-                            <div class="row">
-                                <h6 class="mb-3">Raport Semester (PDF)</h6>
-                                <?php for($i = 1; $i <= 5; $i++): 
-                                    $field_name = "file_raport_" . $i;
-                                ?>
-                                    <div class="col-md-4 mb-3">
-                                        <div class="card">
-                                            <div class="card-body">
-                                                <h6>Semester <?= $i ?></h6>
-                                                <?php if(!empty($peserta[$field_name]) && file_exists("File/{$folder_name}/{$peserta[$field_name]}")): ?>
-                                                    <p class="mb-2"><small class="text-muted"><?= htmlspecialchars($peserta[$field_name]) ?></small></p>
-                                                <?php endif; ?>
-                                                <div class="mt-2">
-                                                    <input type="file" class="form-control file-upload" 
-                                                           name="<?= $field_name ?>" accept="application/pdf" 
-                                                           data-type="raport" data-semester="<?= $i ?>">
-                                                    <small class="text-muted">Upload Raport Semester <?= $i ?> (PDF, max 5MB)</small>
+                            <h6 class="mb-3 border-bottom pb-2">Nilai Raport (Semester 1 - 5)</h6>
+                            <div class="row g-2">
+                                <?php for($i = 1; $i <= 5; $i++): $field_name = "file_raport_" . $i; ?>
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="card doc-card shadow-sm border bg-light">
+                                            <div class="card-body p-3">
+                                                <div class="d-flex justify-content-between mb-2">
+                                                    <h6 class="mb-0 fw-bold">Semester <?= $i ?></h6>
+                                                    <?= (!empty($peserta[$field_name]) && file_exists("File/{$folder_name}/{$peserta[$field_name]}")) ? '<i class="bi bi-check-circle-fill text-success"></i>' : '<i class="bi bi-exclamation-circle text-danger"></i>' ?>
                                                 </div>
+                                                <input type="file" class="form-control form-control-sm file-upload" name="<?= $field_name ?>" accept="application/pdf" data-type="raport" data-semester="<?= $i ?>">
                                             </div>
                                         </div>
                                     </div>
                                 <?php endfor; ?>
                             </div>
 
-                            <div id="uploadStatus" class="alert alert-info" style="display: none;">
-                                <div class="d-flex align-items-center">
-                                    <div class="spinner-border spinner-border-sm me-2"></div>
-                                    <span>Mengupload file...</span>
-                                </div>
+                            <div id="uploadStatus" class="alert alert-info mt-4" style="display: none;">
+                                <div class="d-flex align-items-center"><div class="spinner-border spinner-border-sm me-3"></div><strong>Sedang menyimpan dan mengunggah data... Mohon tunggu.</strong></div>
                             </div>
 
-                            <button type="submit" class="btn btn-primary" id="submitBtn">
-                                <i class="bi bi-save"></i> Simpan Data
-                            </button>
-                        </form>
-
-                        <script>
-                        async function confirmDelete(e) {
-                            e.preventDefault();
-                            const result = await Swal.fire({
-                                title: 'Hapus Prestasi',
-                                text: 'Apakah Anda yakin ingin menghapus prestasi ini?',
-                                icon: 'warning',
-                                showCancelButton: true,
-                                confirmButtonColor: '#d33',
-                                cancelButtonColor: '#3085d6',
-                                confirmButtonText: 'Ya, Hapus!',
-                                cancelButtonText: 'Batal'
-                            });
-
-                            if (result.isConfirmed) {
-                                const form = e.target;
-                                form.submit();
-                            }
-                            return false;
-                        }
-
-                        // Simplified form submission
-                        const uploadForm = document.getElementById('uploadForm');
-                        if (uploadForm) {
-                            uploadForm.addEventListener('submit', function(e) {
-                                e.preventDefault();
-                                
-                                // Validasi ukuran file
-                                const files = document.querySelectorAll('.file-upload');
-                                let isValid = true;
-                                
-                                files.forEach(input => {
-                                    if (input.files.length > 0) {
-                                        const file = input.files[0];
-                                        if (file.size > 5 * 1024 * 1024) {
-                                            alert(`File ${file.name} melebihi batas maksimal 5MB`);
-                                            isValid = false;
-                                        }
-                                    }
-                                });
-
-                                if (!isValid) return;
-
-                                const formData = new FormData(uploadForm);
-                                
-                                fetch('process/upload_handler.php', {
-                                    method: 'POST',
-                                    body: formData
-                                })
-                                .then(response => response.json())
-                                .then(result => {
-                                    if (result.success) {
-                                        window.location.href = 'dashboard.php?success=1';
-                                    } else {
-                                        window.location.href = 'dashboard.php?error=1';
-                                    }
-                                })
-                                .catch(error => {
-                                    window.location.href = 'dashboard.php?error=1';
-                                });
-                            });
-                        }
-
-                        // Handle URL parameters for alerts
-                        window.addEventListener('load', function() {
-                            const urlParams = new URLSearchParams(window.location.search);
-                            
-                            if (urlParams.has('success')) {
-                                Swal.fire({
-                                    title: 'Berhasil!',
-                                    text: 'Data berhasil disimpan',
-                                    icon: 'success',
-                                    timer: 1500,
-                                    showConfirmButton: false
-                                }).then(() => {
-                                    // Hapus parameter dari URL tanpa reload
-                                    window.history.replaceState({}, '', 'dashboard.php');
-                                });
-                            } else if (urlParams.has('error')) {
-                                Swal.fire({
-                                    title: 'Error!',
-                                    text: 'Terjadi kesalahan saat menyimpan data',
-                                    icon: 'error'
-                                }).then(() => {
-                                    window.history.replaceState({}, '', 'dashboard.php');
-                                });
-                            }
-                        });
-                        </script>
+                            <div class="mt-4 pt-3 border-top text-end">
+                                <button type="submit" class="btn btn-primary rounded-pill px-5 py-2 fw-bold shadow-sm" id="submitBtn">
+                                    <i class="bi bi-save me-2"></i> Simpan Seluruh Perubahan
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                </div>
+                </form>
             </div>
 
-            <div class="col-md-4">
-                <div class="card shadow-sm mb-4">
-                    <div class="card-header bg-success text-white">
-                        <h4 class="mb-0"><i class="bi bi-trophy"></i> Prestasi <small class="text-muted">(Opsional)</small></h4>
+            <div class="col-lg-4">
+                <div class="card shadow-sm mb-4 border-0 rounded-4 sticky-top" style="top: 100px;">
+                    <div class="card-header bg-info text-white rounded-top-4 py-3">
+                        <h5 class="mb-0"><i class="bi bi-trophy-fill me-2"></i>Tambah Prestasi</h5>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-4 bg-light">
                         <form method="post" class="mb-4" onsubmit="return handleAddPrestasi(event)">
                             <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
                             <input type="hidden" name="add_prestasi" value="1">
                             
                             <div class="mb-3">
-                                <label>Bidang Prestasi</label>
-                                <select class="form-select" name="bidang_prestasi" required>
-                                    <option value="">Pilih Bidang Prestasi</option>
+                                <label class="small text-muted fw-medium mb-1">Bidang Prestasi</label>
+                                <select class="form-select rounded-3" name="bidang_prestasi" required>
+                                    <option value="">-- Pilih --</option>
                                     <option value="Prestasi Akademik">Prestasi Akademik</option>
                                     <option value="Prestasi Olahraga">Prestasi Olahraga</option>
                                     <option value="Prestasi Seni">Prestasi Seni</option>
                                     <option value="Prestasi Non-Akademik">Prestasi Non-Akademik</option>
                                 </select>
-                                <small class="text-muted">
-                                    <ul class="mt-1">
-                                        <li>Prestasi Akademik: nilai tinggi, penghargaan, beasiswa, kompetisi ilmiah</li>
-                                        <li>Prestasi Olahraga: juara kompetisi, rekor, medali</li>
-                                        <li>Prestasi Seni: juara lomba seni lukis, tari, musik, sastra</li>
-                                        <li>Prestasi Non-Akademik: ketua organisasi, berprestasi dalam lomba pidato, dll</li>
-                                    </ul>
-                                </small>
                             </div>
-
                             <div class="mb-3">
-                                <label>Judul/Nama Prestasi</label>
-                                <input type="text" class="form-control" name="judul_prestasi" placeholder="Contoh: Juara 1 KSM Matematika" required>
+                                <label class="small text-muted fw-medium mb-1">Judul / Nama Lomba</label>
+                                <input type="text" class="form-control rounded-3" name="judul_prestasi" placeholder="Misal: Juara 1 KSM" required>
                             </div>
-
-                            <div class="mb-3">
-                                <label>Peringkat/Hasil</label>
-                                <input type="text" class="form-control" name="peringkat" placeholder="Contoh: Juara 1, Medali Emas, dll" required>
+                            <div class="row g-2 mb-4">
+                                <div class="col-6">
+                                    <label class="small text-muted fw-medium mb-1">Peringkat</label>
+                                    <input type="text" class="form-control rounded-3" name="peringkat" placeholder="Misal: Emas" required>
+                                </div>
+                                <div class="col-6">
+                                    <label class="small text-muted fw-medium mb-1">Tingkat</label>
+                                    <select class="form-select rounded-3" name="tingkat" required>
+                                        <option value="">Pilih</option>
+                                        <option value="Kecamatan">Kecamatan</option>
+                                        <option value="Kabupaten">Kabupaten</option>
+                                        <option value="Provinsi">Provinsi</option>
+                                        <option value="Nasional">Nasional</option>
+                                        <option value="Internasional">Internasional</option>
+                                    </select>
+                                </div>
                             </div>
-
-                            <div class="mb-3">
-                                <label>Tingkat</label>
-                                <select class="form-select" name="tingkat" required>
-                                    <option value="">Pilih Tingkat</option>
-                                    <option value="Kecamatan">Kecamatan</option>
-                                    <option value="Kabupaten">Kabupaten</option>
-                                    <option value="Provinsi">Provinsi</option>
-                                    <option value="Nasional">Nasional</option>
-                                    <option value="Internasional">Internasional</option>
-                                </select>
-                            </div>
-
-                            <button type="submit" class="btn btn-success">
-                                <i class="bi bi-plus-circle"></i> Tambah Prestasi
-                            </button>
+                            <button type="submit" class="btn btn-info text-white w-100 rounded-pill fw-bold shadow-sm"><i class="bi bi-plus-circle me-1"></i> Simpan Prestasi</button>
                         </form>
 
-                        <h5>Daftar Prestasi</h5>
+                        <h6 class="border-bottom pb-2 text-info fw-bold">Riwayat Prestasi Disimpan</h6>
                         <?php if(empty($prestasi)): ?>
-                            <p class="text-muted">Belum ada prestasi yang ditambahkan</p>
+                            <div class="text-center py-3 text-muted small border rounded-3 bg-white"><i class="bi bi-stars d-block fs-3 mb-1"></i>Belum ada data prestasi</div>
                         <?php else: ?>
-                            <div class="list-group">
+                            <div class="d-flex flex-column gap-2" style="max-height: 400px; overflow-y: auto;">
                             <?php foreach($prestasi as $p): ?>
-                                <div class="list-group-item">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div>
-                                            <h6 class="mb-1"><?= htmlspecialchars($p['bidang_prestasi']) ?></h6>
-                                            <p class="mb-1"><?= htmlspecialchars($p['judul_prestasi']) ?></p>
-                                            <small class="text-muted">
-                                                Peringkat: <?= htmlspecialchars($p['peringkat']) ?><br>
-                                                Tingkat: <?= htmlspecialchars($p['tingkat']) ?>
-                                            </small>
-                                        </div>
-                                        <form method="post" style="display: inline;">
-                                            <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
-                                            <input type="hidden" name="delete_prestasi" value="1">
-                                            <input type="hidden" name="prestasi_id" value="<?= $p['id'] ?>">
-                                            <button type="button" class="btn btn-danger btn-sm" onclick="confirmDelete(this)">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
+                                <div class="p-3 bg-white border rounded-3 shadow-sm position-relative">
+                                    <form method="post" class="position-absolute top-0 end-0 p-2">
+                                        <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                                        <input type="hidden" name="delete_prestasi" value="1">
+                                        <input type="hidden" name="prestasi_id" value="<?= $p['id'] ?>">
+                                        <button type="button" class="btn btn-sm text-danger p-0 border-0" onclick="confirmDelete(this)"><i class="bi bi-trash-fill"></i></button>
+                                    </form>
+                                    <span class="badge bg-secondary mb-1"><?= htmlspecialchars($p['bidang_prestasi']) ?></span>
+                                    <div class="fw-bold text-dark small leading-tight mb-1"><?= htmlspecialchars($p['judul_prestasi']) ?></div>
+                                    <div class="small text-muted"><?= htmlspecialchars($p['peringkat']) ?> - Tingkat <?= htmlspecialchars($p['tingkat']) ?></div>
                                 </div>
                             <?php endforeach; ?>
                             </div>
@@ -883,210 +498,79 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
-    <!-- Add this script before closing body tag -->
     <script>
-    // Existing delete confirmation function
     function confirmDelete(button) {
         Swal.fire({
-            title: 'Hapus Prestasi?',
-            text: 'Prestasi yang dihapus tidak dapat dikembalikan',
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Ya, Hapus!',
-            cancelButtonText: 'Batal'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                const form = button.closest('form');
-                form.submit();
-            }
-        });
+            title: 'Hapus Prestasi?', text: 'Data tidak dapat dikembalikan!', icon: 'warning', showCancelButton: true,
+            confirmButtonColor: '#dc3545', cancelButtonColor: '#6c757d', confirmButtonText: 'Ya, Hapus!'
+        }).then((result) => { if (result.isConfirmed) button.closest('form').submit(); });
     }
-
-    // Add new function for handling prestasi submission
     function handleAddPrestasi(e) {
         e.preventDefault();
-        const form = e.target;
-        const formData = new FormData(form);
-
-        fetch(window.location.href, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            Swal.fire({
-                icon: 'success',
-                title: 'Berhasil!',
-                text: 'Prestasi berhasil ditambahkan',
-                timer: 1500,
-                showConfirmButton: false
-            }).then(() => {
-                window.location.reload();
-            });
-        })
-        .catch(error => {
-            Swal.fire({
-                icon: 'error',
-                title: 'Error!',
-                text: 'Gagal menambahkan prestasi'
-            });
-        });
-
+        fetch(window.location.href, { method: 'POST', body: new FormData(e.target) })
+        .then(() => Swal.fire({ icon: 'success', title: 'Berhasil!', text: 'Prestasi ditambahkan', timer: 1500, showConfirmButton: false }).then(() => window.location.reload()))
+        .catch(() => Swal.fire({ icon: 'error', title: 'Error!' }));
         return false;
     }
     </script>
-    <!-- Footer -->
-    <footer class="bg-dark text-white py-4">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6">
-                    <h5>Kontak Kami</h5>
-                    <p>
-                        <i class="bi bi-geo-alt"></i> Jalan Provinsi Rt. 06 Kel. Muara Kelingi Kec. Muara Kelingi Kab. Musi Rawas.<br>
-                        <i class="bi bi-telephone"></i> +62 813-6810-2412 <br>
-                        <i class="bi bi-envelope"></i> syafii.imam317@gmail.com
-                    </p>
-                </div>
-                <div class="col-md-6 text-md-end">
-                    <h5>Media Sosial</h5>
-                    <div class="social-links">
-                        <a href="#" class="text-white me-2"><i class="bi bi-facebook"></i></a>
-                        <a href="#" class="text-white me-2"><i class="bi bi-instagram"></i></a>
-                        <a href="#" class="text-white me-2"><i class="bi bi-twitter"></i></a>
-                        <a href="#" class="text-white"><i class="bi bi-youtube"></i></a>
-                    </div>
-                </div>
-            </div>
-            <hr>
-            <div class="text-center">
-                <small>&copy; <?= date('Y') ?> MAN 1 Musi Rawas. All rights reserved.</small>
-            </div>
+
+    <footer class="bg-white border-top mt-5 py-4 shadow-sm">
+        <div class="container text-center text-muted small">
+            &copy; <?= date('Y') ?> PMBM MAN 1 Musi Rawas. All rights reserved.
         </div>
     </footer>
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/browser-image-compression/2.0.0/browser-image-compression.min.js"></script>
     <script>
         async function compressImage(file) {
-            try {
-                const options = {
-                    maxSizeMB: 1,
-                    maxWidthOrHeight: 800,
-                    useWebWorker: true
-                };
-                return await imageCompression(file, options);
-            } catch (error) {
-                console.error('Error compressing image:', error);
-                return file;
-            }
+            try { return await imageCompression(file, { maxSizeMB: 1, maxWidthOrHeight: 800, useWebWorker: true }); }
+            catch (e) { return file; }
         }
 
         document.getElementById('uploadForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
-            const submitBtn = document.getElementById('submitBtn');
-            const uploadStatus = document.getElementById('uploadStatus');
+            const btn = document.getElementById('submitBtn'), status = document.getElementById('uploadStatus');
+            btn.disabled = true; status.style.display = 'block';
             
             try {
-                submitBtn.disabled = true;
-                uploadStatus.style.display = 'block';
-                
-                const formData = new FormData(this);
-                const response = await fetch('process/upload_handler.php', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                const result = await response.json();
-                
-                if (result.success) {
-                    // Show success alert first
-                    await Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil!',
-                        text: 'Data berhasil disimpan',
-                        confirmButtonColor: '#28a745',
-                        timer: 2000,
-                        timerProgressBar: true,
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-                    
-                    // Add extra delay before redirect
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                const res = await fetch('process/upload_handler.php', { method: 'POST', body: new FormData(this) });
+                const json = await res.json();
+                if (json.success) {
+                    await Swal.fire({ icon: 'success', title: 'Tersimpan!', text: 'Data & berkas berhasil diupdate.', timer: 2000, showConfirmButton: false });
                     window.location.href = 'profile.php';
-                } else {
-                    throw new Error(result.message || 'Gagal menyimpan data');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                // Show error alert
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: error.message || 'Terjadi kesalahan saat menyimpan data',
-                    confirmButtonColor: '#dc3545'
-                });
+                } else throw new Error(json.message);
+            } catch (err) {
+                Swal.fire({ icon: 'error', title: 'Gagal!', text: err.message || 'Terjadi kesalahan sistem.' });
             } finally {
-                submitBtn.disabled = false;
-                uploadStatus.style.display = 'none';
+                btn.disabled = false; status.style.display = 'none';
             }
         });
 
-        // File validation and compression preview
         document.querySelectorAll('.file-upload').forEach(input => {
             input.addEventListener('change', async function() {
                 if(this.files.length > 0) {
-                    const file = this.files[0];
-                    const maxSize = 5 * 1024 * 1024; // 5MB
-                    const isPhoto = this.name === 'file_photo';
-                    
+                    const file = this.files[0], maxSize = 5 * 1024 * 1024, isPhoto = this.name === 'file_photo';
                     if(file.size > maxSize) {
                         if(isPhoto) {
-                            const compressed = await compressImage(file);
-                            if(compressed.size <= maxSize) {
-                                const container = new DataTransfer();
-                                container.items.add(compressed);
-                                this.files = container.files;
-                                return;
-                            }
+                            const comp = await compressImage(file);
+                            if(comp.size <= maxSize) { const dt = new DataTransfer(); dt.items.add(comp); this.files = dt.files; return; }
                         }
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'File Terlalu Besar',
-                            text: 'Ukuran file maksimal 5MB',
-                            confirmButtonColor: '#d33'
-                        });
-                        this.value = '';
-                        return;
+                        Swal.fire({ icon: 'error', title: 'Terlalu Besar', text: 'Maksimal 5MB!' }); this.value = ''; return;
                     }
-
-                    const validPhotoTypes = ['image/jpeg', 'image/png'];
-                    const validDocTypes = ['application/pdf'];
-                    
-                    if(isPhoto && !validPhotoTypes.includes(file.type)) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Format File Salah',
-                            text: 'Foto harus berformat JPG atau PNG',
-                            confirmButtonColor: '#d33'
-                        });
-                        this.value = '';
-                    } else if(!isPhoto && !validDocTypes.includes(file.type)) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Format File Salah', 
-                            text: 'Dokumen harus berformat PDF',
-                            confirmButtonColor: '#d33'
-                        });
-                        this.value = '';
-                    }
+                    if(isPhoto && !['image/jpeg', 'image/png'].includes(file.type)) { Swal.fire({ icon:'error', title:'Format Salah', text:'Foto harus JPG/PNG' }); this.value = ''; }
+                    else if(!isPhoto && file.type !== 'application/pdf') { Swal.fire({ icon:'error', title:'Format Salah', text:'Dokumen harus PDF' }); this.value = ''; }
                 }
             });
+        });
+
+        window.addEventListener('load', function() {
+            const params = new URLSearchParams(window.location.search);
+            if (params.has('success')) {
+                Swal.fire({ title: 'Berhasil!', text: 'Data disimpan.', icon: 'success', timer: 1500, showConfirmButton: false }).then(() => window.history.replaceState({}, '', 'dashboard.php'));
+            } else if (params.has('error')) {
+                Swal.fire({ title: 'Error!', text: 'Gagal menyimpan.', icon: 'error' }).then(() => window.history.replaceState({}, '', 'dashboard.php'));
+            }
         });
     </script>
 </body>

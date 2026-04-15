@@ -40,7 +40,7 @@ $data = $stmt->fetchAll();
 
 // Send headers for Excel download
 header('Content-Type: application/vnd.ms-excel');
-header('Content-Disposition: attachment; filename="Data_Peserta_PPDB_'.date('Y-m-d_His').'.xls"');
+header('Content-Disposition: attachment; filename="Data_Peserta_PMBM_'.date('Y-m-d_His').'.xls"');
 header('Cache-Control: max-age=0');
 
 // Output the Excel content directly (no saving to file)
@@ -56,7 +56,7 @@ header('Cache-Control: max-age=0');
         <x:ExcelWorkbook>
             <x:ExcelWorksheets>
                 <x:ExcelWorksheet>
-                    <x:Name>Data Peserta PPDB</x:Name>
+                    <x:Name>Data Peserta PMBM</x:Name>
                     <x:WorksheetOptions>
                         <x:DisplayGridlines/>
                     </x:WorksheetOptions>
@@ -113,7 +113,6 @@ header('Cache-Control: max-age=0');
                 <th bgcolor="#f0f0f0">Kota</th>
                 <th bgcolor="#f0f0f0">Jalur Pendaftaran</th>
                 <th bgcolor="#f0f0f0">Jarak ke Sekolah (km)</th>
-                <th bgcolor="#f0f0f0">Program Keahlian</th>
                 <th bgcolor="#f0f0f0">Prestasi</th>
                 <th bgcolor="#f0f0f0">Status Verifikasi</th>
                 <th bgcolor="#f0f0f0">Catatan Verifikasi</th>
@@ -168,7 +167,6 @@ header('Cache-Control: max-age=0');
                 <td><?= htmlspecialchars($row['alamat_ortu_kota']) ?></td>
                 <td><?= htmlspecialchars($row['nama_jalur']) ?></td>
                 <td><?= htmlspecialchars($row['jarak_ke_sekolah']) ?></td>
-                <td><?= htmlspecialchars($row['program_keahlian']) ?></td>
                 <td><?= htmlspecialchars($prestasi) ?></td>
                 <td><?= htmlspecialchars($row['status_verifikasi'] ?? 'Pending') ?></td>
                 <td><?= htmlspecialchars($catatan_verifikasi) ?></td>

@@ -62,12 +62,12 @@ try {
     $form_data = [];
     $fields = [
         'nik', 'no_kk', 'tempat_lahir', 'tanggal_lahir', 'jenis_kelamin', 'agama_siswa',
-        'asal_sekolah', 'tahun_lulus', 'no_wa_siswa', 'program_keahlian',
+        'asal_sekolah', 'tahun_lulus', 'no_wa_siswa',
         'alamat_siswa_jalan', 'alamat_siswa_rt', 'alamat_siswa_rw',
         'alamat_siswa_kelurahan', 'alamat_siswa_kecamatan', 'alamat_siswa_kota',
         'nama_ayah', 'nama_ibu', 'tempat_lahir_ayah', 'tempat_lahir_ibu',
         'tanggal_lahir_ayah', 'tanggal_lahir_ibu', 'pekerjaan_ayah', 'pekerjaan_ibu',
-        'agama_ayah', 'agama_ibu', 'no_telp_ortu',
+        'agama_ayah', 'agama_ibu', 'no_telp_ortu', 'jarak_ke_sekolah',
         'alamat_ortu_jalan', 'alamat_ortu_rt', 'alamat_ortu_rw',
         'alamat_ortu_kelurahan', 'alamat_ortu_kecamatan', 'alamat_ortu_kota'
     ];

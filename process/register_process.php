@@ -2,7 +2,7 @@
 session_start();
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/functions.php';
-require_once __DIR__.'/../api/whatsapp_api.php';
+require_once __DIR__.'/../api/whatsapp_api.php'; // Pastikan path ini benar sesuai lokasinya
 
 // Blok akses langsung ke file
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -35,7 +35,7 @@ try {
     $confirm_password = $_POST['confirm_password'];
 
     // ============================================
-    // VALIDASI DATA
+    // VALIDASI DATA BENTUK TEXT
     // ============================================
     $errors = [];
     
@@ -57,8 +57,17 @@ try {
         $errors[] = "Password minimal 8 karakter!";
     }
 
-    // Cek jalur valid dengan logic yang benar
+    // Jika ada error pada input, langsung hentikan proses agar tidak buang-buang koneksi database
+    if (!empty($errors)) {
+        throw new Exception(implode("<br>", $errors));
+    }
+
+    // ============================================
+    // VALIDASI DATABASE (Jalur, Kuota & Duplikasi)
+    // ============================================
     $now = date('Y-m-d H:i:s');
+    
+    // 1. Cek jalur valid & kuota
     $stmt = $pdo->prepare("
         SELECT j.*,
             (SELECT COUNT(*) FROM peserta WHERE jalur_id = j.id) as total_pendaftar
@@ -73,43 +82,39 @@ try {
         throw new Exception("Jalur pendaftaran tidak tersedia atau sudah ditutup! Silakan pilih jalur lain.");
     }
 
-    // Cek kuota
     if ($jalur['total_pendaftar'] >= $jalur['kuota']) {
         throw new Exception("Mohon maaf, kuota {$jalur['nama_jalur']} sudah penuh ({$jalur['total_pendaftar']}/{$jalur['kuota']})");
     }
 
-    if (!empty($errors)) {
-        throw new Exception(implode("<br>", $errors));
+    // 2. Cek duplikasi NISN dan Nama
+    $stmt = $pdo->prepare("
+        SELECT p.id, p.nama_lengkap, p.nisn, j.nama_jalur 
+        FROM peserta p 
+        LEFT JOIN jalur_pendaftaran j ON p.jalur_id = j.id 
+        WHERE p.nisn = ? OR LOWER(p.nama_lengkap) = LOWER(?)
+    ");
+    $stmt->execute([$nisn, $nama]);
+    $existing = $stmt->fetch();
+    
+    if ($existing) {
+        $error_msg = "Maaf, ";
+        if (strtolower($existing['nama_lengkap']) === strtolower($nama)) {
+            $error_msg .= "nama <strong>{$existing['nama_lengkap']}</strong> ";
+        }
+        if ($existing['nisn'] === $nisn) {
+            $error_msg .= ($error_msg !== "Maaf, " ? "dengan " : "") . "NISN <strong>{$existing['nisn']}</strong> ";
+        }
+        $error_msg .= "sudah terdaftar di jalur {$existing['nama_jalur']}.";
+        throw new Exception($error_msg);
     }
 
+
     // ============================================
-    // PROSES DATABASE
+    // PROSES INSERT DATABASE (Aman untuk Transaksi)
     // ============================================
     $pdo->beginTransaction();
 
     try {
-        // Cek duplikasi NISN dan nama (case insensitive)
-        $stmt = $pdo->prepare("
-            SELECT p.id, p.nama_lengkap, p.nisn, j.nama_jalur 
-            FROM peserta p 
-            LEFT JOIN jalur_pendaftaran j ON p.jalur_id = j.id 
-            WHERE p.nisn = ? OR LOWER(p.nama_lengkap) = LOWER(?)
-        ");
-        $stmt->execute([$nisn, $nama]);
-        $existing = $stmt->fetch();
-        
-        if ($existing) {
-            $error_msg = "Maaf, ";
-            if (strtolower($existing['nama_lengkap']) === strtolower($nama)) {
-                $error_msg .= "nama {$existing['nama_lengkap']} ";
-            }
-            if ($existing['nisn'] === $nisn) {
-                $error_msg .= ($error_msg !== "Maaf, " ? "dengan " : "") . "NISN {$existing['nisn']} ";
-            }
-            $error_msg .= "sudah terdaftar di jalur {$existing['nama_jalur']}";
-            throw new Exception($error_msg);
-        }
-
         // Hash password dengan cost yang sesuai
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
         
@@ -119,36 +124,40 @@ try {
         $user_id = $pdo->lastInsertId();
         
         $pdo->commit();
-
-        // ============================================
-        // KIRIM NOTIFIKASI WHATSAPP
-        // ============================================
-        try {
-            $wa_result = sendRegistrationSuccess(
-                $nisn,
-                $password,
-                $phone
-            );
-            
-            if (!$wa_result) {
-                error_log("Gagal mengirim WhatsApp ke $phone");
-            }
-        } catch (Exception $e) {
-            error_log("WhatsApp Error: " . $e->getMessage());
-        }
-
-        $_SESSION['registration_success'] = "Pendaftaran berhasil! Silakan cek WhatsApp Anda untuk informasi selanjutnya.";
-        header("Location: ../index.php");
-        exit();
-
     } catch (PDOException $e) {
         $pdo->rollBack();
-        error_log("Database Error: " . $e->getMessage());
+        error_log("Database Error (Register): " . $e->getMessage());
         throw new Exception("Gagal menyimpan data. Silakan coba beberapa saat lagi.");
     }
 
+
+    // ============================================
+    // KIRIM NOTIFIKASI WHATSAPP FONNTE
+    // ============================================
+    try {
+        // PERBAIKAN: Menambahkan parameter $nama agar sapaannya dinamis
+        $wa_result = sendRegistrationSuccess(
+            $nisn,
+            $password,
+            $phone,
+            $nama
+        );
+        
+        if (!$wa_result) {
+            error_log("Fonnte Warning: Gagal mengirim WhatsApp ke $phone");
+        }
+    } catch (Exception $e) {
+        // Jika WA gagal, akun tetap jadi, kita catat errornya saja
+        error_log("WhatsApp API Error: " . $e->getMessage());
+    }
+
+    $_SESSION['registration_success'] = "Pendaftaran berhasil! Silakan cek WhatsApp Anda untuk informasi Akun Login.";
+    header("Location: ../index.php");
+    exit();
+
 } catch (Exception $e) {
     $_SESSION['error'] = $e->getMessage();
+    // Redirect dengan parameter agar modal daftar terbuka kembali (opsional, sesuaikan dengan JS kamu)
     header("Location: ../index.php?show=daftar");
     exit;
 }

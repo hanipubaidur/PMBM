@@ -39,16 +39,23 @@ function sendWhatsAppMessage($phone, $message) {
     return $error ? false : true;
 }
 
-function sendRegistrationSuccess($nisn, $password, $phone) {
-    $message = "📚 *PPDB MAN 1 Musi Rawas* 📚\n\n"
-             . "Halo calon siswa!\n\n"
-             . "Berikut kredensial login Anda:\n"
-             . "➤ NISN: *$nisn*\n"
-             . "➤ Password: *$password*\n\n"
-             . "🔐 *Simpan baik-baik informasi ini!*\n"
-             . "🔗 Login di: https://testppdb.wuaze.com\n\n"
-             . "Untuk bantuan hubungi:\n"
-             . "📞 0813-6810-2412 (Admin)";
+function sendRegistrationSuccess($nisn, $password, $phone, $nama_lengkap = "Calon Siswa") {
+    // Note: Aku tambahkan parameter $nama_lengkap biar bisa dipanggil namanya
+    
+    $message = "✨ *SELAMAT DATANG DI PMBM MAN 1 MUSI RAWAS* ✨\n\n"
+             . "Halo *" . trim($nama_lengkap) . "*! 👋\n"
+             . "Terima kasih telah melakukan pendaftaran awal. Akun PMBM kamu telah berhasil dibuat.\n\n"
+             . "Berikut adalah detail akses akun kamu:\n"
+             . "👤 *NISN*        : $nisn\n"
+             . "🔑 *Password* : $password\n\n"
+             . "⚠️ *PENTING:*\n"
+             . "_Mohon simpan dan jangan berikan informasi login ini kepada siapapun._\n\n"
+             . "Langkah selanjutnya, silakan *Login* untuk melengkapi formulir biodata dan mengunggah berkas persyaratan di tautan berikut:\n"
+             . "🌐 https://ppdb-man1musirawas.wuaze.com\n\n"
+             . "Jika kamu mengalami kendala atau memiliki pertanyaan, jangan ragu untuk menghubungi panitia:\n"
+             . "📞 *Admin:* 081368102412/085725128427\n\n"
+             . "Terima kasih,\n"
+             . "*Panitia PMBM MAN 1 Musi Rawas* 🎓";
 
     return sendWhatsAppMessage($phone, $message);
 }

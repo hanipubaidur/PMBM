@@ -46,74 +46,58 @@ try {
     $auto_note = !empty($missing_files) ? "Silakan lengkapi berkas berikut:\n- " . implode("\n- ", $missing_files) : "";
     
     // Use admin's manual note if provided
-    // If no manual note and no missing files, leave it empty
     $final_note = !empty($_POST['catatan']) ? $_POST['catatan'] : 
                   (!empty($missing_files) ? $auto_note : "");
 
-    // Check if verification record exists
+    $pdo->beginTransaction();
+
+    // 1. UPDATE atau INSERT ke tabel verifikasi_peserta
     $stmt = $pdo->prepare("SELECT id FROM verifikasi_peserta WHERE peserta_id = ?");
     $stmt->execute([$_POST['id']]);
     $exists = $stmt->fetch();
 
     if($exists) {
-        // Update existing record
         $stmt = $pdo->prepare("UPDATE verifikasi_peserta SET 
-            status_verifikasi = ?,
-            jarak_ke_sekolah = ?,
-            catatan = ?,
-            admin_id = ?,
-            updated_at = CURRENT_TIMESTAMP
+            status_verifikasi = ?, catatan = ?, admin_id = ?, updated_at = CURRENT_TIMESTAMP
             WHERE peserta_id = ?");
-        
-        $stmt->execute([
-            $_POST['status_verifikasi'],
-            $_POST['jarak'],
-            $final_note,
-            $_SESSION['admin']['id'],
-            $_POST['id']
-        ]);
+        $stmt->execute([$_POST['status_verifikasi'], $final_note, $_SESSION['admin']['id'], $_POST['id']]);
     } else {
-        // Insert new record
         $stmt = $pdo->prepare("INSERT INTO verifikasi_peserta 
-            (peserta_id, admin_id, status_verifikasi, jarak_ke_sekolah, catatan)
-            VALUES (?, ?, ?, ?, ?)");
-        
-        $stmt->execute([
-            $_POST['id'],
-            $_SESSION['admin']['id'],
-            $_POST['status_verifikasi'],
-            $_POST['jarak'],
-            $final_note
-        ]);
+            (peserta_id, admin_id, status_verifikasi, catatan) VALUES (?, ?, ?, ?)");
+        $stmt->execute([$_POST['id'], $_SESSION['admin']['id'], $_POST['status_verifikasi'], $final_note]);
     }
 
-    // Update jarak in peserta table
-    $stmt = $pdo->prepare("UPDATE peserta SET jarak_ke_sekolah = ? WHERE id = ?");
-    $stmt->execute([$_POST['jarak'], $_POST['id']]);
-
-    // Handle pengumuman if status is Verified
-    if($_POST['status_verifikasi'] === 'Verified' && !empty($_POST['status_penerimaan'])) {
-        $stmt = $pdo->prepare("INSERT INTO pengumuman 
-            (peserta_id, status_penerimaan, admin_id)
-            VALUES (?, ?, ?)
-            ON DUPLICATE KEY UPDATE 
-            status_penerimaan = ?, admin_id = ?");
-        
-        $stmt->execute([
-            $_POST['id'],
-            $_POST['status_penerimaan'],
-            $_SESSION['admin']['id'],
-            $_POST['status_penerimaan'],
-            $_SESSION['admin']['id']
-        ]);
+    // 2. Sinkronisasi dengan tabel pengumuman
+    if($_POST['status_verifikasi'] === 'Verified') {
+        if (!empty($_POST['status_penerimaan'])) {
+            $stmt = $pdo->prepare("SELECT id FROM pengumuman WHERE peserta_id = ?");
+            $stmt->execute([$_POST['id']]);
+            
+            if($stmt->fetch()) {
+                // Update jika sudah ada (Mencegah Clone)
+                $stmt = $pdo->prepare("UPDATE pengumuman SET status_penerimaan = ?, admin_id = ?, updated_at = CURRENT_TIMESTAMP WHERE peserta_id = ?");
+                $stmt->execute([$_POST['status_penerimaan'], $_SESSION['admin']['id'], $_POST['id']]);
+            } else {
+                // Insert jika belum ada
+                $stmt = $pdo->prepare("INSERT INTO pengumuman (peserta_id, status_penerimaan, admin_id, created_at, updated_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+                $stmt->execute([$_POST['id'], $_POST['status_penerimaan'], $_SESSION['admin']['id']]);
+            }
+        }
+    } else {
+        // Jika status verifikasi diubah kembali menjadi Pending/Rejected, HAPUS datanya dari pengumuman agar tidak nyangkut
+        $stmt = $pdo->prepare("DELETE FROM pengumuman WHERE peserta_id = ?");
+        $stmt->execute([$_POST['id']]);
     }
 
-    // Change this line to use a specific session key
+    $pdo->commit();
     $_SESSION['verifikasi_success'] = "Status verifikasi berhasil diperbarui";
     header("Location: ../verifikasi.php");
     exit;
 
 } catch(Exception $e) {
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
+    }
     error_log($e->getMessage());
     $_SESSION['error'] = "Terjadi kesalahan: " . $e->getMessage();
     header("Location: ../verifikasi.php");

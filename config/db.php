@@ -12,10 +12,10 @@ if (session_status() === PHP_SESSION_NONE) {
 date_default_timezone_set('Asia/Jakarta'); // Add this line after session_start()
 
 // Database Configuration
-$host = 'localhost';
-$db   = 'ppdb_man1mr';
-$user = 'root';
-$pass = '';
+$host = 'sql313.infinityfree.com';
+$db   = 'if0_41320441_pmbm26';
+$user = 'if0_41320441';
+$pass = 'NinipGanteng123';
 $charset = 'utf8mb4';
 
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset";
@@ -34,5 +34,5 @@ try {
 
 // Fonnte WhatsApp API
 define('FONNTE_API', 'https://api.fonnte.com/send');
-define('FONNTE_TOKEN', 'bWMdwuNNg6jjK9ZQVB59');
-define('ADMIN_PHONE', '6281368102412');
+define('FONNTE_TOKEN', '4S54xvg83YcPb3YWzVAR');
+define('ADMIN_PHONE', '6285725128427');

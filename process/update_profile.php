@@ -15,6 +15,7 @@ try {
         throw new Exception('Invalid request method');
     }
 
+    // Ditambahkan jarak_ke_sekolah ke daftar fields
     $fields = [
         'nik', 'no_kk', 'tempat_lahir', 'tanggal_lahir', 'agama_siswa', 'no_wa_siswa', 
         'asal_sekolah', 'tahun_lulus', 'jalur_id', 'jenis_kelamin',
@@ -24,8 +25,8 @@ try {
         'agama_ayah', 'agama_ibu', 'no_telp_ortu',
         'alamat_ortu_jalan', 'alamat_ortu_rt', 'alamat_ortu_rw',
         'alamat_ortu_kelurahan', 'alamat_ortu_kecamatan', 'alamat_ortu_kota',
-        'program_keahlian', 'tempat_lahir_ayah', 'tempat_lahir_ibu', 
-        'tanggal_lahir_ayah', 'tanggal_lahir_ibu'
+        'tempat_lahir_ayah', 'tempat_lahir_ibu', 
+        'tanggal_lahir_ayah', 'tanggal_lahir_ibu', 'jarak_ke_sekolah'
     ];
 
     $updates = [];
