@@ -1,14 +1,14 @@
 <div align="center">
-  <img src="https://freeimghost.net/images/2025/04/04/logo_kemenag.png" alt="Logo MAN 1 MURA" width="120">
-  <h1>🎓 PPDB MAN 1 MUSI RAWAS</h1>
-  <p>Sistem Penerimaan Peserta Didik Baru Tahun Ajaran 2024/2025</p>
+  <img src="https://cdn.postimage.me/2026/04/11/logo-kemenag.png" alt="Logo MAN 1 MURA" width="120">
+  <h1>🎓 PMBM MAN 1 MUSI RAWAS</h1>
+  <p>Sistem Penerimaan Murid Baru Madrasah Tahun Ajaran 2026/2027</p>
 </div>
 
 ---
 
 ## 🌟 Selamat Datang Calon Siswa/i MAN 1 Musi Rawas!
 
-Selamat datang di portal PPDB Online MAN 1 Musi Rawas! Kami sangat antusias menyambut para calon siswa/i baru yang akan bergabung dengan keluarga besar MAN 1 Musi Rawas. Di sini kalian akan memulai perjalanan menuju masa depan yang cerah dengan pendidikan berkualitas berbasis Islam.
+Selamat datang di portal PMBM Online MAN 1 Musi Rawas! Kami sangat antusias menyambut para calon siswa/i baru yang akan bergabung dengan keluarga besar MAN 1 Musi Rawas. Di sini kalian akan memulai perjalanan menuju masa depan yang cerah dengan pendidikan berkualitas berbasis Islam.
 
 ## 📚 Panduan untuk Calon Siswa
 
@@ -23,6 +23,7 @@ Selamat datang di portal PPDB Online MAN 1 Musi Rawas! Kami sangat antusias meny
    - Konfirmasi Password
    - CAPTCHA
 3. Klik "Daftar" untuk membuat akun
+4. Cek WhatsApp Anda untuk menerima detail kredensial login (terintegrasi API).
 
 ### 🔐 2. Login ke Sistem
 1. Klik tombol "Login" di pojok kanan atas
@@ -41,7 +42,7 @@ Selamat datang di portal PPDB Online MAN 1 Musi Rawas! Kami sangat antusias meny
 2. **Upload Dokumen** 📎
    - Kartu Keluarga (PDF, max 5MB)
    - Akte Kelahiran (PDF, max 5MB)
-   - Pas Foto (JPG/PNG, max 5MB)
+   - Pas Foto (JPG/PNG, max 5MB - dengan fitur auto-compress)
    - Raport semester 1-5 (PDF, max 5MB)
 
 3. **Input Prestasi** 🏆
@@ -52,12 +53,15 @@ Selamat datang di portal PPDB Online MAN 1 Musi Rawas! Kami sangat antusias meny
 ### ⏳ 4. Proses Verifikasi
 1. Tunggu admin memverifikasi berkas
 2. Cek status verifikasi di dashboard
-3. Jika ditolak, lengkapi kekurangan data
+3. Jika ditolak, lengkapi kekurangan data sesuai catatan Admin.
 
-### 📢 5. Pengumuman
+### 📢 5. Pengumuman Terjadwal
 1. Buka menu "Pengumuman"
-2. Lihat hasil kelulusan
-3. Jika diterima, ikuti instruksi daftar ulang
+2. Tunggu Live Countdown Timer mencapai angka nol (00:00:00).
+3. Halaman otomatis memuat hasil kelulusan.
+4. Jika diterima, perhatikan instruksi kehadiran Pertemuan Wali sekaligus Daftar Ulang.
+
+---
 
 ## 👨‍💼 Panduan untuk Admin
 
@@ -67,106 +71,70 @@ Selamat datang di portal PPDB Online MAN 1 Musi Rawas! Kami sangat antusias meny
    - "Verifikasi" - untuk verifikasi data baru/pending
    - "Peserta" - untuk melihat semua data peserta
    - "Pengumuman" - untuk manajemen pengumuman
-3. Fitur pencarian di setiap halaman:
-   - Cari berdasarkan nama
-   - Cari berdasarkan NISN
-4. Pengurutan data otomatis:
-   - Data terverifikasi (Verified) ditampilkan paling atas, diurutkan dari terbaru ke lama
-   - Data pending dan ditolak diurutkan dari terbaru ke lama  
-   - Prioritas status: Verified > Pending > Rejected
-   - Sistem ini memudahkan admin memantau pendaftar-pendaftar baru
+3. Fitur pencarian terintegrasi (Cari berdasarkan Nama atau NISN).
+4. Pengurutan data otomatis berdasarkan prioritas (Verified > Pending > Rejected) untuk mempercepat kerja admin.
 
 ### 📏 2. Verifikasi & Catatan
 1. Klik tombol "Verifikasi" atau "Edit"
 2. Input/edit data verifikasi:
-   - Jarak ke sekolah (dalam kilometer)
    - Status verifikasi (Verified/Pending/Rejected)
-   - Status penerimaan (untuk status Verified)
+   - Status penerimaan (muncul dinamis khusus untuk status Verified)
 3. Sistem manajemen catatan:
-   - Tambah catatan untuk setiap verifikasi
-   - Catatan wajib untuk status Rejected
-   - Catatan akan muncul di dashboard siswa
-   - Siswa dapat melihat & menindaklanjuti catatan
+   - Generate otomatis catatan jika ada berkas dokumen siswa yang kurang.
+   - Admin dapat menambahkan catatan kustom yang langsung terlihat di dashboard siswa.
 
 ### 📊 3. Dashboard Admin
-1. Statistik pendaftaran:
-   - Total pendaftar
-   - Jumlah terverifikasi
-   - Jumlah pending
-   - Jumlah ditolak
-2. Monitoring status:
-   - Quick view status verifikasi
-   - Tracking progress pendaftaran
-   - Alert untuk pendaftar baru
+1. Statistik Pendaftaran (Total, Terverifikasi, Pending, Ditolak).
+2. Statistik persebaran jumlah peserta per Jalur Pendaftaran.
+3. Tabel *Quick View* 10 pendaftar terbaru beserta tombol aksi cepat.
+
+---
 
 ## 🎨 Fitur Menarik
 
 ### Untuk Siswa
-- 🎯 Dashboard interaktif
-- 📱 Responsive design
-- 🔔 Notifikasi status
-- 📄 Download dokumen
-- 👥 Profile lengkap
+- 🎯 UI Dashboard bergaya modern (Rounded & Clean)
+- 📱 Fully Responsive Design (Mobile-first)
+- ⏳ Live Countdown Timer Pengumuman
+- 📲 Notifikasi WhatsApp Real-time (Fonnte API)
+- 🖼️ Auto-compress ukuran gambar sebelum diunggah
 
 ### Untuk Admin
-- 📊 Statistik real-time pendaftar
-- 📝 Sistem verifikasi dengan catatan
-- 🔍 Pencarian dan filter canggih
-- 📈 Pengurutan status otomatis
-- 🎯 Tracking progress pendaftaran
-- 📩 Export data lengkap
-- ⚡ Manajemen pengumuman terintegrasi
+- 📊 Statistik real-time visual
+- 🛡️ Pencegahan duplikasi/clone data pada proses verifikasi
+- 🔔 SweetAlert2 untuk notifikasi & konfirmasi yang elegan
+- 📂 Manajemen file terpusat (Preview & Download Dokumen)
 
-## 💡 Tips Penggunaan
-1. Siapkan scan dokumen yang jelas
-2. Foto formal dengan latar biru/merah
-3. File maksimal 5MB
-4. Isi data dengan lengkap & teliti
-5. Simpan NISN & password dengan aman
-6. Periksa pengumuman secara berkala
+---
 
-## ⚠️ Penting!
-- Pastikan data yang diinput valid & benar
-- Perhatikan jadwal pendaftaran
-- Jaga kerahasiaan akun
-- Hubungi admin melalui WhatsApp jika ada kendala
-- Segera lakukan daftar ulang jika dinyatakan lulus
+## 🆕 Update Terbaru (15 April 2026)
 
-## 🆕 Update Terbaru (19 Mei 2025 - 09:45 WIB)
+### 🛠 Perbaikan (Bug Fixes)
+- **Fixed:** Mencegah terjadinya duplikasi (*cloning*) data di tabel pengumuman saat admin melakukan perubahan status berulang kali.
+- **Fixed:** Perbaikan logika transaksi database (`PDO transaction`) pada proses pendaftaran agar aman dari bentrok data.
+- **Fixed:** Pemanggilan nama jalur pendaftaran secara dinamis langsung dari database, tidak lagi dibatasi oleh *hardcode* array.
+- **Fixed:** Perbaikan layout (margin & padding) yang bergeser (*annoying shift*) pada *sidebar* dan navigasi di panel admin.
 
-### 🛠 Perbaikan
-- Fixed: Masalah foto profil yang tidak terupdate setelah upload
-- Fixed: Duplikasi data prestasi saat input berulang
-- Fixed: Validasi form prestasi yang tidak konsisten
-- Fixed: Perhitungan jarak ke sekolah yang tidak akurat
-
-### 💡 Peningkatan
-1. **Manajemen File**
-   - Cache foto profil lebih optimal
-   - Sistem kompresi foto otomatis
-   - Preview file sebelum upload
-   - Validasi format & ukuran file yang lebih baik
-
-2. **Input Prestasi**
-   - Form input yang lebih user-friendly
-   - Validasi data prestasi lebih ketat
-   - Pengelompokan prestasi lebih terstruktur
-   - Label opsional untuk jalur non-prestasi
-
-3. **Verifikasi Data**
-   - Status verifikasi real-time
-   - Notifikasi perubahan status
-   - Tracking berkas lebih detail
-   - Catatan verifikasi yang lebih informatif
+### 💡 Peningkatan (Enhancements)
+1. **Modernisasi UI/UX**
+   - Merombak seluruh tampilan admin dan siswa dari tabel kaku menjadi *card layout* bergaya *modern rounded-4* dengan *soft shadow*.
+   - Integrasi SweetAlert2 secara menyeluruh untuk *alert* sukses/gagal dan konfirmasi hapus data.
+2. **Pengumuman Interaktif**
+   - Implementasi *Live Countdown Timer* berbasis JavaScript dan sinkronisasi zona waktu (Asia/Jakarta) pada halaman pengumuman siswa.
+   - Penggabungan informasi jadwal Pertemuan Wali dan Daftar Ulang menjadi satu tahapan praktis.
+3. **Integrasi & Media**
+   - Penambahan *preview* visual langsung untuk *upload* Pas Foto di halaman profil siswa dan verifikasi admin.
+   - Peningkatan *template* pengiriman notifikasi pendaftaran via WhatsApp (Fonnte API) menjadi lebih detail dan personal (memanggil nama pendaftar).
 
 <div align="center">
-  <p>💫 Selamat mendaftar dan sukses selalu! 💫</p>
+  <br>
+  <p>💫 <b>Teruslah belajar, teruslah berkarya!</b> 💫</p>
   
   ---
   ### 👨‍💻 Development Team
-  - Hanif Ubaidur Rohman Syah (23106050081)
-  - Ananda Oktazana Ramadan (23106050070)
-  - Zaki Atha Maheswara (23106050092)
-  - Muhammad Rayyan Afiq El Vann (23106050063)
+  
+  **Hanif Ubaidur Rohman Syah** (23106050081) <br>
+  Mahasiswa Semester 6 - Informatika <br>
+  Universitas Islam Negeri (UIN) Sunan Kalijaga Yogyakarta
   
 </div>
