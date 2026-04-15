@@ -120,13 +120,11 @@ try {
                                 echo "<div class='alert alert-danger py-2 mt-2 mb-0 small'><i class='bi bi-x-circle-fill'></i> Ditolak - Periksa Kelengkapan</div>";
                             } elseif ($status === 'Verified') {
                                 echo "<div class='alert alert-success py-2 mt-2 mb-0 small'><i class='bi bi-check-circle-fill'></i> Terverifikasi</div>";
+                                
+                                // FIX: Tombol langsung dimunculkan khusus untuk yang sudah Terverifikasi (Apapun tanggalnya)
+                                echo "<a href='pengumuman.php' class='btn btn-info text-white w-100 rounded-pill mt-3 fw-bold shadow-sm'><i class='bi bi-megaphone-fill me-1'></i> Lihat Pengumuman</a>";
                             } else {
                                 echo "<div class='alert alert-warning py-2 mt-2 mb-0 small'><i class='bi bi-hourglass-split'></i> Belum Diverifikasi</div>";
-                            }
-                            
-                            $announcementStatus = getAnnouncementStatus($_SESSION['user']['id'], $pdo);
-                            if ($announcementStatus['canViewResult'] ?? false) {
-                                echo "<a href='pengumuman.php' class='btn btn-info w-100 rounded-pill mt-3 fw-medium shadow-sm'><i class='bi bi-megaphone-fill me-1'></i> Lihat Pengumuman</a>";
                             }
                             ?>
                         </div>

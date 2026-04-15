@@ -362,6 +362,9 @@ unset($_SESSION['error']);
                 <form action="process/register_process.php" method="POST" id="formDaftar">
                     <div class="modal-body pt-4">
                         <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                        <?php $reg_tx_token = generateTransactionToken('register'); ?>
+                        <input type="hidden" name="tx_token" id="regTxToken" value="<?= $reg_tx_token ?>">
+                        
                         <div class="mb-3">
                             <label class="form-label small fw-medium text-muted">Nama Lengkap</label>
                             <input type="text" class="form-control rounded-3" name="nama_lengkap" required>
@@ -408,7 +411,7 @@ unset($_SESSION['error']);
                                 </div>
                             </div>
                             <div class="input-group">
-                                <span class="input-group-text bg-white fw-bold fs-5 text-primary" id="captcha-code" style="letter-spacing: 2px;"><?= $_SESSION['captcha']['code'] ?? '' ?></span>
+                                <span class="input-group-text bg-white fw-bold fs-5 text-primary" id="captcha-code" style="letter-spacing: 2px;"></span>
                                 <input type="text" class="form-control" name="captcha" id="captcha-input" required pattern="[A-Za-z0-9]{6}" placeholder="Ketik kode di kiri">
                             </div>
                         </div>
@@ -432,6 +435,9 @@ unset($_SESSION['error']);
                 <form action="process/login_process.php" method="POST" id="formLogin">
                     <div class="modal-body pt-4">
                         <input type="hidden" name="csrf_token" value="<?= $csrf_token ?>">
+                        <?php $login_tx_token = generateTransactionToken('login'); ?>
+                        <input type="hidden" name="tx_token" id="loginTxToken" value="<?= $login_tx_token ?>">
+
                         <div class="mb-3">
                             <label class="form-label small fw-medium text-muted">NISN</label>
                             <input type="number" class="form-control rounded-3" name="nisn" required pattern="[0-9]{10}" placeholder="Masukkan NISN">
@@ -452,7 +458,7 @@ unset($_SESSION['error']);
                                 </div>
                             </div>
                             <div class="input-group">
-                                <span class="input-group-text bg-white fw-bold text-primary" id="login-captcha-code" style="letter-spacing: 2px;"><?= $_SESSION['captcha']['code'] ?? '' ?></span>
+                                <span class="input-group-text bg-white fw-bold text-primary" id="login-captcha-code" style="letter-spacing: 2px;"></span>
                                 <input type="text" class="form-control" name="captcha" id="login-captcha-input" required pattern="[A-Za-z0-9]{6}">
                             </div>
                         </div>
@@ -478,7 +484,38 @@ unset($_SESSION['error']);
                 if (target) target.scrollIntoView({ behavior: 'smooth' });
             });
         });
+        
         <?= getJavaScript() ?>
+
+        // AUTO TRIGGER CAPTCHA KETIKA MODAL DIBUKA
+        document.addEventListener('DOMContentLoaded', function() {
+            const daftarModal = document.getElementById('daftarModal');
+            if (daftarModal) {
+                daftarModal.addEventListener('show.bs.modal', function () {
+                    const token = document.getElementById('regTxToken')?.value;
+                    if(token) refreshCaptcha('captcha-code', 'captcha-timer', 'captcha-input', 'register', token);
+                });
+            }
+
+            const loginModal = document.getElementById('loginModal');
+            if (loginModal) {
+                loginModal.addEventListener('show.bs.modal', function () {
+                    const token = document.getElementById('loginTxToken')?.value;
+                    if(token) refreshCaptcha('login-captcha-code', 'login-captcha-timer', 'login-captcha-input', 'login', token);
+                });
+            }
+
+            // CEK JIKA ADA PARAMETER ERROR, OTOMATIS BUKA MODAL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('show')) {
+                const target = urlParams.get('show');
+                if (target === 'daftar' && daftarModal) {
+                    new bootstrap.Modal(daftarModal).show();
+                } else if (target === 'login' && loginModal) {
+                    new bootstrap.Modal(loginModal).show();
+                }
+            }
+        });
     </script>
 </body>
 </html>

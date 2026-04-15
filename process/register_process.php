@@ -2,26 +2,31 @@
 session_start();
 require_once __DIR__.'/../config/db.php';
 require_once __DIR__.'/../includes/functions.php';
-require_once __DIR__.'/../api/whatsapp_api.php'; // Pastikan path ini benar sesuai lokasinya
+require_once __DIR__.'/../api/whatsapp_api.php';
 
-// Blok akses langsung ke file
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    die(json_encode([
-        'status' => 'error',
-        'message' => 'Akses tidak sah!'
-    ]));
+    die(json_encode(['status' => 'error', 'message' => 'Akses tidak sah!']));
 }
 
 try {
     // ============================================
-    // VALIDASI KEAMANAN
+    // VALIDASI KEAMANAN TINGKAT TINGGI (ANTI-BOT)
     // ============================================
-    if (!isset($_POST['csrf_token']) || !validateCsrfToken($_POST['csrf_token'])) {
-        throw new Exception("Token keamanan tidak valid! Refresh halaman dan coba lagi.");
+    
+    // 1. Cek Token Transaksi (1-Time Use)
+    $tx_token = $_POST['tx_token'] ?? '';
+    if (!validateAndConsumeTxToken('register', $tx_token)) {
+        throw new Exception("Sesi pendaftaran kadaluarsa atau tidak sah! Silakan tutup form dan coba buka kembali.");
     }
 
+    // 2. Cek CSRF Biasa
+    if (!isset($_POST['csrf_token']) || !validateCsrfToken($_POST['csrf_token'])) {
+        throw new Exception("Token keamanan CSRF tidak valid! Refresh halaman dan coba lagi.");
+    }
+
+    // 3. Cek Captcha
     if (!isset($_POST['captcha']) || !validateCaptcha($_POST['captcha'], 'register')) {
-        throw new Exception("CAPTCHA tidak valid atau kadaluarsa! Refresh CAPTCHA dan coba lagi.");
+        throw new Exception("CAPTCHA tidak valid atau kadaluarsa! Refresh halaman dan coba lagi.");
     }
 
     // ============================================
@@ -29,125 +34,56 @@ try {
     // ============================================
     $nisn = preg_replace('/[^0-9]/', '', $_POST['nisn']);
     $nama = clean_input($_POST['nama_lengkap']);
-    $phone = preg_replace('/^0/', '62', clean_input($_POST['no_wa_siswa'])); // Format internasional
+    $phone = preg_replace('/^0/', '62', clean_input($_POST['no_wa_siswa']));
     $jalur_id = (int)clean_input($_POST['jalur_id']);
     $password = $_POST['password'];
     $confirm_password = $_POST['confirm_password'];
 
-    // ============================================
-    // VALIDASI DATA BENTUK TEXT
-    // ============================================
     $errors = [];
-    
-    // Validasi panjang NISN
-    if (strlen($nisn) !== 10) {
-        $errors[] = "NISN harus 10 digit angka!";
-    }
+    if (strlen($nisn) !== 10) $errors[] = "NISN harus 10 digit angka!";
+    if (!preg_match('/^62\d{9,13}$/', $phone)) $errors[] = "Format WhatsApp tidak valid! Gunakan format 08xx-xxxx-xxxx";
+    if ($password !== $confirm_password) $errors[] = "Konfirmasi password tidak cocok!";
+    if (strlen($password) < 8) $errors[] = "Password minimal 8 karakter!";
 
-    // Validasi format WhatsApp
-    if (!preg_match('/^62\d{9,13}$/', $phone)) {
-        $errors[] = "Format WhatsApp tidak valid! Gunakan format 08xx-xxxx-xxxx";
-    }
-
-    // Validasi password
-    if ($password !== $confirm_password) {
-        $errors[] = "Konfirmasi password tidak cocok!";
-    }
-    if (strlen($password) < 8) {
-        $errors[] = "Password minimal 8 karakter!";
-    }
-
-    // Jika ada error pada input, langsung hentikan proses agar tidak buang-buang koneksi database
     if (!empty($errors)) {
         throw new Exception(implode("<br>", $errors));
     }
 
-    // ============================================
-    // VALIDASI DATABASE (Jalur, Kuota & Duplikasi)
-    // ============================================
     $now = date('Y-m-d H:i:s');
-    
-    // 1. Cek jalur valid & kuota
     $stmt = $pdo->prepare("
-        SELECT j.*,
-            (SELECT COUNT(*) FROM peserta WHERE jalur_id = j.id) as total_pendaftar
+        SELECT j.*, (SELECT COUNT(*) FROM peserta WHERE jalur_id = j.id) as total_pendaftar
         FROM jalur_pendaftaran j 
-        WHERE j.id = ?
-        AND ? BETWEEN j.tanggal_buka AND j.tanggal_tutup
+        WHERE j.id = ? AND ? BETWEEN j.tanggal_buka AND j.tanggal_tutup
     ");
     $stmt->execute([$jalur_id, $now]);
     $jalur = $stmt->fetch();
 
-    if (!$jalur) {
-        throw new Exception("Jalur pendaftaran tidak tersedia atau sudah ditutup! Silakan pilih jalur lain.");
-    }
+    if (!$jalur) throw new Exception("Jalur pendaftaran tidak tersedia atau sudah ditutup!");
+    if ($jalur['total_pendaftar'] >= $jalur['kuota']) throw new Exception("Mohon maaf, kuota {$jalur['nama_jalur']} sudah penuh!");
 
-    if ($jalur['total_pendaftar'] >= $jalur['kuota']) {
-        throw new Exception("Mohon maaf, kuota {$jalur['nama_jalur']} sudah penuh ({$jalur['total_pendaftar']}/{$jalur['kuota']})");
-    }
-
-    // 2. Cek duplikasi NISN dan Nama
-    $stmt = $pdo->prepare("
-        SELECT p.id, p.nama_lengkap, p.nisn, j.nama_jalur 
-        FROM peserta p 
-        LEFT JOIN jalur_pendaftaran j ON p.jalur_id = j.id 
-        WHERE p.nisn = ? OR LOWER(p.nama_lengkap) = LOWER(?)
-    ");
+    $stmt = $pdo->prepare("SELECT p.id, p.nama_lengkap, p.nisn, j.nama_jalur FROM peserta p LEFT JOIN jalur_pendaftaran j ON p.jalur_id = j.id WHERE p.nisn = ? OR LOWER(p.nama_lengkap) = LOWER(?)");
     $stmt->execute([$nisn, $nama]);
     $existing = $stmt->fetch();
     
     if ($existing) {
-        $error_msg = "Maaf, ";
-        if (strtolower($existing['nama_lengkap']) === strtolower($nama)) {
-            $error_msg .= "nama <strong>{$existing['nama_lengkap']}</strong> ";
-        }
-        if ($existing['nisn'] === $nisn) {
-            $error_msg .= ($error_msg !== "Maaf, " ? "dengan " : "") . "NISN <strong>{$existing['nisn']}</strong> ";
-        }
-        $error_msg .= "sudah terdaftar di jalur {$existing['nama_jalur']}.";
-        throw new Exception($error_msg);
+        throw new Exception("Maaf, NISN atau Nama sudah terdaftar di sistem.");
     }
 
-
-    // ============================================
-    // PROSES INSERT DATABASE (Aman untuk Transaksi)
-    // ============================================
+    // Eksekusi Database
     $pdo->beginTransaction();
-
     try {
-        // Hash password dengan cost yang sesuai
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
-        
-        // Simpan data
         $stmt = $pdo->prepare("INSERT INTO peserta (nama_lengkap, nisn, jalur_id, password, no_wa_siswa) VALUES (?, ?, ?, ?, ?)");
         $stmt->execute([$nama, $nisn, $jalur_id, $hashed_password, $phone]);
-        $user_id = $pdo->lastInsertId();
-        
         $pdo->commit();
     } catch (PDOException $e) {
         $pdo->rollBack();
-        error_log("Database Error (Register): " . $e->getMessage());
         throw new Exception("Gagal menyimpan data. Silakan coba beberapa saat lagi.");
     }
 
-
-    // ============================================
-    // KIRIM NOTIFIKASI WHATSAPP FONNTE
-    // ============================================
     try {
-        // PERBAIKAN: Menambahkan parameter $nama agar sapaannya dinamis
-        $wa_result = sendRegistrationSuccess(
-            $nisn,
-            $password,
-            $phone,
-            $nama
-        );
-        
-        if (!$wa_result) {
-            error_log("Fonnte Warning: Gagal mengirim WhatsApp ke $phone");
-        }
+        sendRegistrationSuccess($nisn, $password, $phone, $nama);
     } catch (Exception $e) {
-        // Jika WA gagal, akun tetap jadi, kita catat errornya saja
         error_log("WhatsApp API Error: " . $e->getMessage());
     }
 
@@ -157,7 +93,6 @@ try {
 
 } catch (Exception $e) {
     $_SESSION['error'] = $e->getMessage();
-    // Redirect dengan parameter agar modal daftar terbuka kembali (opsional, sesuaikan dengan JS kamu)
     header("Location: ../index.php?show=daftar");
     exit;
 }
