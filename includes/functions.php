@@ -62,10 +62,9 @@ function validateCaptcha($input, $type = 'register') {
 }
 
 // ==========================================
-// FILE UPLOAD HELPERS (YANG SEMPAT TERHAPUS)
+// FILE UPLOAD HELPERS
 // ==========================================
 function getFormattedFileName($original_name, $type, $nama_lengkap) {
-    // Bersihkan nama dari spasi dan karakter aneh untuk nama file
     $safe_nama = preg_replace('/[^A-Za-z0-9]/', '', $nama_lengkap);
     
     switch($type) {
@@ -138,17 +137,30 @@ function togglePassword(inputId) {
     input.type = input.type === 'password' ? 'text' : 'password';
 }
 
-function initializeCaptcha(captchaId, timerId, inputId, type, txToken) {
-    refreshCaptcha(captchaId, timerId, inputId, type, txToken);
+function initializeCaptcha(captchaId, timerId, inputId, type = 'register') {
+    refreshCaptcha(captchaId, timerId, inputId, type);
 }
 
-async function refreshCaptcha(captchaId, timerId, inputId, type, txToken) {
+async function refreshCaptcha(captchaId, timerId, inputId, type = 'register') {
     const input = document.getElementById(inputId);
-    input.addEventListener('paste', e => e.preventDefault());
-    input.addEventListener('contextmenu', e => e.preventDefault());
+    if(input) {
+        input.addEventListener('paste', e => e.preventDefault());
+        input.addEventListener('contextmenu', e => e.preventDefault());
+        input.value = ''; 
+        input.disabled = false;
+    }
     
     if (window[`${timerId}_interval`]) clearInterval(window[`${timerId}_interval`]);
-    input.value = ''; input.disabled = false;
+    
+    // SECURITY: Ambil token keamanan langsung dari dalam form DOM saat refresh diklik
+    let txToken = '';
+    if (type === 'register') {
+        const tokenEl = document.getElementById('regTxToken');
+        if (tokenEl) txToken = tokenEl.value;
+    } else if (type === 'login') {
+        const tokenEl = document.getElementById('loginTxToken');
+        if (tokenEl) txToken = tokenEl.value;
+    }
     
     try {
         let basePath = window.location.pathname.includes('/admin/') ? '../includes/' : 'includes/';
@@ -174,17 +186,17 @@ async function refreshCaptcha(captchaId, timerId, inputId, type, txToken) {
         const noise = Array(3).fill().map(() => `<span class="noise" style="left: ${Math.random() * 100}%"></span>`).join('');
         captchaElement.insertAdjacentHTML('beforeend', noise);
         
-        startCaptchaTimer(timerId, captchaId, inputId, type, txToken);
+        startCaptchaTimer(timerId, captchaId, inputId, type);
         
     } catch (error) {
         console.error('Captcha Error:', error);
         document.getElementById(captchaId).innerHTML = `<span class="text-danger" style="font-size: 1rem;">ERROR</span>`;
         document.getElementById(timerId).textContent = "00:00";
-        input.disabled = true;
+        if(input) input.disabled = true;
     }
 }
 
-function startCaptchaTimer(timerId, captchaId, inputId, type, txToken) {
+function startCaptchaTimer(timerId, captchaId, inputId, type = 'register') {
     let timeLeft = 90;
     const timerElement = document.getElementById(timerId);
     
@@ -200,7 +212,7 @@ function startCaptchaTimer(timerId, captchaId, inputId, type, txToken) {
         timeLeft--; updateDisplay();
         if (timeLeft <= 0) {
             clearInterval(window[`${timerId}_interval`]);
-            refreshCaptcha(captchaId, timerId, inputId, type, txToken); // Auto refresh
+            refreshCaptcha(captchaId, timerId, inputId, type); // Auto refresh
         }
     }, 1000);
     updateDisplay();

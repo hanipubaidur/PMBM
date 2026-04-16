@@ -492,16 +492,14 @@ unset($_SESSION['error']);
             const daftarModal = document.getElementById('daftarModal');
             if (daftarModal) {
                 daftarModal.addEventListener('show.bs.modal', function () {
-                    const token = document.getElementById('regTxToken')?.value;
-                    if(token) refreshCaptcha('captcha-code', 'captcha-timer', 'captcha-input', 'register', token);
+                    refreshCaptcha('captcha-code', 'captcha-timer', 'captcha-input', 'register');
                 });
             }
 
             const loginModal = document.getElementById('loginModal');
             if (loginModal) {
                 loginModal.addEventListener('show.bs.modal', function () {
-                    const token = document.getElementById('loginTxToken')?.value;
-                    if(token) refreshCaptcha('login-captcha-code', 'login-captcha-timer', 'login-captcha-input', 'login', token);
+                    refreshCaptcha('login-captcha-code', 'login-captcha-timer', 'login-captcha-input', 'login');
                 });
             }
 

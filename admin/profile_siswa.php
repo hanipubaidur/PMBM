@@ -220,10 +220,6 @@ try {
                     </div>
                     <div class="card-body p-4">
                         <div class="row mb-4 bg-light p-3 rounded-3 mx-0">
-                            <div class="col-md-6 border-end">
-                                <div class="label-text">Program Keahlian</div>
-                                <div class="value-text text-info mb-0"><?= htmlspecialchars($peserta['program_keahlian'] ?? '-') ?></div>
-                            </div>
                             <div class="col-md-6 ps-md-4">
                                 <div class="label-text">Jarak ke Sekolah</div>
                                 <div class="value-text text-info mb-0"><?= htmlspecialchars($peserta['jarak_ke_sekolah'] ?? '-') ?> km</div>

@@ -66,7 +66,6 @@ CREATE TABLE peserta (
     -- Lain-lain
     jalur_id INT,
     jarak_ke_sekolah DECIMAL(5,2),
-    program_keahlian ENUM('IPA', 'IPS', 'Bahasa', 'Keagamaan'),
     file_kk VARCHAR(255),
     file_akte VARCHAR(255),
     file_photo VARCHAR(255),
